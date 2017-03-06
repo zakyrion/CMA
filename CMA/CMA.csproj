@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F5542C50-A2D3-4A9E-8C60-B6437BD5EDD7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CMA</RootNamespace>
+    <AssemblyName>CMA</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Base\Builder\Builder.cs" />
+    <Compile Include="Base\Builder\BuildManager.cs" />
+    <Compile Include="Base\Builder\IBuilder.cs" />
+    <Compile Include="Base\Component.cs" />
+    <Compile Include="Base\Compositor.cs" />
+    <Compile Include="Base\CompositorComponent.cs" />
+    <Compile Include="Base\Builder\IBuildManager.cs" />
+    <Compile Include="Base\Core\Core.cs" />
+    <Compile Include="Base\IComponent.cs" />
+    <Compile Include="Base\ICompositor.cs" />
+    <Compile Include="Base\Markers\IMarkerHandler.cs" />
+    <Compile Include="Base\Markers\IMessageMarkerHandler.cs" />
+    <Compile Include="Base\Markers\IRequestMarkerHandler.cs" />
+    <Compile Include="Base\Markers\Marker.cs" />
+    <Compile Include="Base\Markers\MessageMarkerHandler.cs" />
+    <Compile Include="Base\Markers\RequestMarkerHandler.cs" />
+    <Compile Include="Base\Messages\Communication.cs" />
+    <Compile Include="Base\Messages\Handlers\IRequestHandler.cs" />
+    <Compile Include="Base\Messages\Handlers\MessageHandler.cs" />
+    <Compile Include="Base\Messages\Handlers\IMessageHandler.cs" />
+    <Compile Include="Base\Messages\Handlers\RequestSimpleHandler.cs" />
+    <Compile Include="Base\Messages\ICommunication.cs" />
+    <Compile Include="Base\Messages\IMessage.cs" />
+    <Compile Include="Base\Messages\IMessageManager.cs" />
+    <Compile Include="Base\Messages\IRequest.cs" />
+    <Compile Include="Base\Messages\IRequestResult.cs" />
+    <Compile Include="Base\Messages\Message.cs" />
+    <Compile Include="Base\Messages\MessageManager.cs" />
+    <Compile Include="Base\Messages\Handlers\RequestHandler.cs" />
+    <Compile Include="Base\Messages\Request.cs" />
+    <Compile Include="Base\Messages\RequestKey.cs" />
+    <Compile Include="Base\Messages\SimpleRequest.cs" />
+    <Compile Include="Base\Messages\ThreadMessageManager.cs" />
+    <Compile Include="Base\Messages\ThreadPoolMessageManager.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
