@@ -1,0 +1,5 @@
+F:\projects\CMA\CMA\obj\Debug\CMA.csprojResolveAssemblyReference.cache
+F:\projects\CMA\CMA\bin\Debug\CMA.dll
+F:\projects\CMA\CMA\bin\Debug\CMA.pdb
+F:\projects\CMA\CMA\obj\Debug\CMA.dll
+F:\projects\CMA\CMA\obj\Debug\CMA.pdb

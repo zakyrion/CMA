@@ -73,7 +73,7 @@ namespace CMA
         {
             var result = default(T);
 
-            if (Contains(key))
+            if (Contains(key) && Cache[key][0] is T)
                 result = (T)Cache[key][0];
 
             return result;

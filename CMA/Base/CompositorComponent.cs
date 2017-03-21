@@ -4,6 +4,11 @@ using CMA.Messages;
 
 namespace CMA
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T">MarkerKey for components identefication</typeparam>
+    /// <typeparam name="K">key for compositor</typeparam>
     public class CompositorComponent<T, K> : Compositor<T>, IComponent<K>
     {
         public CompositorComponent(K key)
@@ -45,7 +50,7 @@ namespace CMA
             Subscribe();
         }
 
-        protected virtual Marker Marker { get; set; }
+        protected virtual IMarker Marker { get; set; }
 
         public virtual bool IsRoot { get; protected set; }
         public List<IMessageHandler> ToOwnerMessages { get; protected set; }
@@ -69,14 +74,47 @@ namespace CMA
             return new CompositorComponent<T, K>(this);
         }
 
-        protected virtual void AddMessageMaker<T>(MessageDelegate<IMessage> @delegate) where T : Marker
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="M">Type of marker</typeparam>
+        /// <param name="delegate"></param>
+        protected virtual void AddMessageMarker<M>(MessageMarkerDelegate<IMessage, M> @delegate) where M : IMarker
         {
-            ToOwnerMessageMarkers.Add(new MessageMarkerHandler<T>(@delegate));
+            ToOwnerMessageMarkers.Add(new MessageMarkerHandler<M>(@delegate));
         }
 
-        protected virtual void AddRequestMarker<T>(RequestDelegate<object, IRequest> @delegate)
+        /// <summary>
+        /// Create Simple Marker without method
+        /// </summary>
+        /// <typeparam name="M"></typeparam>
+        protected virtual void AddMessageMarker<M>() where M : IMarker
+        {
+            ToOwnerMessageMarkers.Add(new MessageMarkerHandler<M>((message, marker) =>
+            {
+                var component = GetComponent<IMessageRespounder>((T)marker.ObjKey);
+
+                if (component != null)
+                    component.SendMessage(message);
+            }));
+        }
+
+        protected virtual void AddRequestMarker<T>(RequestMarkerDelegate<object, IRequest, T> @delegate) where T : IMarker
         {
             ToOwnerRequestMarkers.Add(new RequestMarkerHandler<T>(@delegate));
+        }
+
+        /// <summary>
+        /// Create Simple Marker without method
+        /// </summary>
+        /// <typeparam name="M"></typeparam>
+        protected virtual void AddRequestMarker<M>() where M : IMarker
+        {
+            ToOwnerRequestMarkers.Add(new RequestMarkerHandler<M>((request, marker) =>
+            {
+                var component = GetComponent<IMessageRespounder>((T)marker.ObjKey);
+                return component != null ? component.SendRequest(request) : null;
+            }));
         }
 
         protected virtual void Subscribe()
@@ -85,18 +123,20 @@ namespace CMA
 
         protected virtual void SubscribeMessageRecieverToOwner<T>(MessageDelegate<T> @delegate) where T : IMessage
         {
-            ToOwnerMessages.Add(new MessageHandler<T>(@delegate));
+            MessageManager.SubscribeMessageReciever(new MessageHandler<T>(@delegate));
+            ToOwnerMessages.Add(new MessageHandler<T>(delegate (T message) { MessageManager.SendMessage(message); }));
         }
 
         protected virtual void SubscribeRequestRecieverToOwner<T>(RequestSimpleDelegate<T> @delegate)
         {
-            ToOwnerRequests.Add(new RequestSimpleHandler<T>(@delegate));
+            MessageManager.SubscribeRequestReciever(new RequestSimpleHandler<T>(@delegate));
+            ToOwnerRequests.Add(new RequestSimpleHandler<T>(() => MessageManager.SendRequest<T>()));
         }
-
 
         protected virtual void SubscribeRequestRecieverToOwner<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
         {
-            ToOwnerRequests.Add(new RequestHandler<T, K>(@delegate));
+            MessageManager.SubscribeRequestReciever(new RequestHandler<T, K>(@delegate));
+            ToOwnerRequests.Add(new RequestHandler<T, K>(message => MessageManager.SendRequest<T>(message)));
         }
 
         public override T1 SendRequest<T1>(IRequest request)

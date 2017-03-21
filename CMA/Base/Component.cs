@@ -6,7 +6,13 @@ namespace CMA
 {
     public abstract class Component<T> : IComponent<T>
     {
-        protected Component(T key)
+        protected IMessageManager MessageManager;
+
+        protected Component(T key) : this(key, new MessageManager())
+        {
+        }
+
+        protected Component(T key, IMessageManager messageManager) : this(messageManager)
         {
             Key = key;
 
@@ -17,6 +23,11 @@ namespace CMA
             ToOwnerRequestMarkers = new List<IRequestMarkerHandler>();
 
             Subscribe();
+        }
+
+        private Component(IMessageManager messageManager)
+        {
+            MessageManager = messageManager;
         }
 
         public List<IMessageHandler> ToOwnerMessages { get; protected set; }
@@ -37,29 +48,73 @@ namespace CMA
 
         public abstract object Clone();
 
-        protected virtual void SubscribeMessageRecieverToOwner<T>(MessageDelegate<T> @delegate) where T : IMessage
+        public void SendMessage(IMessage message)
         {
-            ToOwnerMessages.Add(new MessageHandler<T>(@delegate));
+            MessageManager.SendMessage(message);
         }
 
-        protected virtual void SubscribeRequestRecieverToOwner<T>(RequestSimpleDelegate<T> @delegate)
+        public bool ContainsMessage<T1>() where T1 : IMessage
         {
-            ToOwnerRequests.Add(new RequestSimpleHandler<T>(@delegate));
+            return MessageManager.ContainsMessage<T1>();
         }
 
-        protected virtual void AddMessageMaker<T>(MessageDelegate<IMessage> @delegate) where T : Marker
+        public bool ContainsMessage(IMessage message)
+        {
+            return MessageManager.ContainsMessage(message);
+        }
+
+        public object SendRequest(IRequest request)
+        {
+            return MessageManager.SendRequest(request);
+        }
+
+        public T1 SendRequest<T1>(IRequest request)
+        {
+            return (T1) MessageManager.SendRequest(request);
+        }
+
+        public T1 SendRequest<T1>()
+        {
+            return MessageManager.SendRequest<T1>();
+        }
+
+        public bool ContainsRequest<T1>()
+        {
+            return MessageManager.ContainsRequest<T1>();
+        }
+
+        public bool ContainsRequest(IRequest request)
+        {
+            return MessageManager.ContainsRequest(request);
+        }
+
+        protected virtual void AddMessageMaker<T>(MessageMarkerDelegate<IMessage, T> @delegate) where T : IMarker
         {
             ToOwnerMessageMarkers.Add(new MessageMarkerHandler<T>(@delegate));
         }
 
-        protected virtual void AddRequestMarker<T>(RequestDelegate<object, IRequest> @delegate)
+        protected virtual void AddRequestMarker<T>(RequestMarkerDelegate<object, IRequest, T> @delegate)
+            where T : IMarker
         {
             ToOwnerRequestMarkers.Add(new RequestMarkerHandler<T>(@delegate));
         }
 
+        protected virtual void SubscribeMessageRecieverToOwner<T>(MessageDelegate<T> @delegate) where T : IMessage
+        {
+            MessageManager.SubscribeMessageReciever(new MessageHandler<T>(@delegate));
+            ToOwnerMessages.Add(new MessageHandler<T>(delegate(T message) { MessageManager.SendMessage(message); }));
+        }
+
+        protected virtual void SubscribeRequestRecieverToOwner<T>(RequestSimpleDelegate<T> @delegate)
+        {
+            MessageManager.SubscribeRequestReciever(new RequestSimpleHandler<T>(@delegate));
+            ToOwnerRequests.Add(new RequestSimpleHandler<T>(() => MessageManager.SendRequest<T>()));
+        }
+
         protected virtual void SubscribeRequestRecieverToOwner<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
         {
-            ToOwnerRequests.Add(new RequestHandler<T, K>(@delegate));
+            MessageManager.SubscribeRequestReciever(new RequestHandler<T, K>(@delegate));
+            ToOwnerRequests.Add(new RequestHandler<T, K>(message => MessageManager.SendRequest<T>(message)));
         }
 
         protected virtual void Subscribe()

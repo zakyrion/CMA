@@ -3,18 +3,18 @@ using CMA.Messages;
 
 namespace CMA.Markers
 {
-    public class RequestMarkerHandler<T> : IRequestMarkerHandler
+    public class RequestMarkerHandler<T> : IRequestMarkerHandler where T : IMarker
     {
-        protected RequestDelegate<object, IRequest> DelegateField;
+        protected RequestMarkerDelegate<object, IRequest, T> DelegateField;
 
-        public RequestMarkerHandler(RequestDelegate<object, IRequest> delegateField)
+        public RequestMarkerHandler(RequestMarkerDelegate<object, IRequest, T> delegateField)
         {
             DelegateField = delegateField;
         }
 
         public string Key
         {
-            get { return typeof (T).Name; }
+            get { return typeof(T).Name; }
         }
 
         public Delegate Delegate
@@ -24,7 +24,7 @@ namespace CMA.Markers
 
         public bool Contains(Delegate @delegate)
         {
-            return @delegate == (Delegate) DelegateField;
+            return @delegate == (Delegate)DelegateField;
         }
 
         public bool Equals(IRequestMarkerHandler handler)
@@ -34,7 +34,7 @@ namespace CMA.Markers
 
         public object Invoke(IRequest request)
         {
-            return DelegateField(request);
+            return DelegateField(request, request.GetMarker<T>());
         }
     }
 }

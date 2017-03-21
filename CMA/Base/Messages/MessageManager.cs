@@ -73,8 +73,8 @@ namespace CMA.Messages
                     MessageRecievers[key][i].Invoke(message);
             else
                 foreach (var marker in message.Markers)
-                    if (MarkerMessageRecievers.ContainsKey(marker.Key))
-                        foreach (var handler in MarkerMessageRecievers[marker.Key])
+                    if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
+                        foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
                             handler.Invoke(message);
         }
 
@@ -88,7 +88,7 @@ namespace CMA.Messages
         {
             var key = message.GetType().Name;
             return MessageRecievers.ContainsKey(key) ||
-                   message.Markers.Any(marker => MarkerMessageRecievers.ContainsKey(marker.Key));
+                   message.Markers.Any(marker => MarkerMessageRecievers.ContainsKey(marker.MarkerKey));
         }
 
         public void SubscribeMessageReciever(IMessageHandler handler)
@@ -168,8 +168,8 @@ namespace CMA.Messages
             //реквесты с параметрами хранятся отдельно и проверяются на совпадение сообщения и результата
 
             foreach (var marker in request.Markers)
-                if (MarkerRequestRecievers.ContainsKey(marker.Key))
-                    return MarkerRequestRecievers[marker.Key].Invoke(request);
+                if (MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
+                    return MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
 
             if (request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value))
                 return RequestRecievers[request.RequestKey.Value].Invoke(request);
@@ -205,7 +205,7 @@ namespace CMA.Messages
 
         public bool ContainsRequest(IRequest request)
         {
-            return request.Markers.Any(marker => MarkerRequestRecievers.ContainsKey(marker.Key)) || request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value) || SimpleRequestRecievers.ContainsKey(request.ResultKey);
+            return request.Markers.Any(marker => MarkerRequestRecievers.ContainsKey(marker.MarkerKey)) || request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value) || SimpleRequestRecievers.ContainsKey(request.ResultKey);
         }
 
         public void SubscribeRequestReciever(IRequestHandler handler)

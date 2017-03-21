@@ -3,11 +3,11 @@ using CMA.Messages;
 
 namespace CMA.Markers
 {
-    public class MessageMarkerHandler<T> : IMessageMarkerHandler where T : Marker
+    public class MessageMarkerHandler<T> : IMessageMarkerHandler where T : IMarker
     {
-        protected MessageDelegate<IMessage> DelegateField;
+        protected MessageMarkerDelegate<IMessage, T> DelegateField;
 
-        public MessageMarkerHandler(MessageDelegate<IMessage> @delegate)
+        public MessageMarkerHandler(MessageMarkerDelegate<IMessage, T> @delegate)
         {
             DelegateField = @delegate;
         }
@@ -19,12 +19,12 @@ namespace CMA.Markers
 
         public void Invoke(IMessage message)
         {
-            DelegateField.Invoke(message);
+            DelegateField.Invoke(message, message.GetMarker<T>());
         }
 
         public string Key
         {
-            get { return typeof (T).ToString(); }
+            get { return typeof(T).ToString(); }
         }
 
         public Delegate Delegate
@@ -34,7 +34,7 @@ namespace CMA.Markers
 
         public bool Contains(Delegate @delegate)
         {
-            return @delegate == (Delegate) DelegateField;
+            return @delegate == (Delegate)DelegateField;
         }
     }
 }

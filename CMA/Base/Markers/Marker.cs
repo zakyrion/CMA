@@ -1,7 +1,19 @@
 ﻿namespace CMA.Markers
 {
-    public abstract class Marker
+    public abstract class Marker<T> : IMarker
     {
-        public abstract string Key { get; }
+        protected Marker(T key)
+        {
+            Key = key;
+        }
+
+        public virtual T Key { get; protected set; }
+
+        public object ObjKey { get { return Key; } }
+
+        public virtual string MarkerKey
+        {
+            get { return GetType().Name; }
+        }
     }
 }

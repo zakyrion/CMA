@@ -3,25 +3,25 @@ using CMA.Markers;
 
 public abstract class Communication : ICommunication
 {
-    protected Dictionary<string, Marker> Cache = new Dictionary<string, Marker>();
-    protected Dictionary<string, Marker> CacheReturningMarkers = new Dictionary<string, Marker>();
+    protected Dictionary<string, IMarker> Cache = new Dictionary<string, IMarker>();
+    protected Dictionary<string, IMarker> CacheReturningMarkers = new Dictionary<string, IMarker>();
 
     protected Communication()
     {
-        Markers = new List<Marker>();
-        ReturningMarkers = new List<Marker>();
+        Markers = new List<IMarker>();
+        ReturningMarkers = new List<IMarker>();
     }
 
-    public List<Marker> Markers { get; protected set; }
-    public List<Marker> ReturningMarkers { get; protected set; }
+    public List<IMarker> Markers { get; protected set; }
+    public List<IMarker> ReturningMarkers { get; protected set; }
 
-    public T GetMarker<T>() where T : Marker
+    public T GetMarker<T>() where T : IMarker
     {
         var key = typeof (T).Name;
         return (T) Cache[key];
     }
 
-    public T GetReturningMarker<T>() where T : Marker
+    public T GetReturningMarker<T>() where T : IMarker
     {
         var key = typeof (T).Name;
         return (T) CacheReturningMarkers[key];
@@ -33,19 +33,19 @@ public abstract class Communication : ICommunication
         return Cache.ContainsKey(key);
     }
 
-    public void AddMarkerForReturn(Marker marker)
+    public void AddMarkerForReturn(IMarker marker)
     {
         ReturningMarkers.Add(marker);
-        CacheReturningMarkers[marker.Key] = marker;
+        CacheReturningMarkers[marker.MarkerKey] = marker;
     }
 
-    public void AddMarker(Marker marker)
+    public void AddMarker(IMarker marker)
     {
         Markers.Add(marker);
-        Cache[marker.Key] = marker;
+        Cache[marker.MarkerKey] = marker;
     }
 
-    public void AddMarkers(IEnumerable<Marker> markers)
+    public void AddMarkers(IEnumerable<IMarker> markers)
     {
         foreach (var marker in markers)
             AddMarker(marker);

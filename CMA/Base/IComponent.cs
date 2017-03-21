@@ -5,7 +5,7 @@ using CMA.Messages;
 
 namespace CMA
 {
-    public interface IComponent<T> : ICloneable
+    public interface IComponent<T> : ICloneable, IMessageRespounder
     {
         List<IMessageHandler> ToOwnerMessages { get; }
         List<IRequestHandler> ToOwnerRequests { get; }

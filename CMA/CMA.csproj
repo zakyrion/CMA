@@ -51,6 +51,7 @@
     <Compile Include="Base\Core\Core.cs" />
     <Compile Include="Base\IComponent.cs" />
     <Compile Include="Base\ICompositor.cs" />
+    <Compile Include="Base\Markers\IMarker.cs" />
     <Compile Include="Base\Markers\IMarkerHandler.cs" />
     <Compile Include="Base\Markers\IMessageMarkerHandler.cs" />
     <Compile Include="Base\Markers\IRequestMarkerHandler.cs" />
@@ -65,6 +66,7 @@
     <Compile Include="Base\Messages\ICommunication.cs" />
     <Compile Include="Base\Messages\IMessage.cs" />
     <Compile Include="Base\Messages\IMessageManager.cs" />
+    <Compile Include="Base\Messages\IMessageRespounder.cs" />
     <Compile Include="Base\Messages\IRequest.cs" />
     <Compile Include="Base\Messages\IRequestResult.cs" />
     <Compile Include="Base\Messages\Message.cs" />

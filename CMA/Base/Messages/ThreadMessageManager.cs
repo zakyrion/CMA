@@ -25,6 +25,7 @@ namespace CMA.Messages
             lock (Messages)
             {
                 Messages.Enqueue(message);
+                Monitor.Pulse(Messages);
             }
         }
 
@@ -41,27 +42,30 @@ namespace CMA.Messages
 
         protected void Update()
         {
-            for (;;)
+            while (true)
             {
                 IMessage[] messages = null;
 
                 lock (Messages)
                 {
-                    if (Messages.Count > 0)
+                    do
                     {
-                        messages = Messages.ToArray();
-                        Messages.Clear();
-                    }
-                }
-                if (messages != null)
-                {
-                    foreach (var message in messages)
-                    {
-                        base.SendMessage(message);
-                    }
+                        if (Messages.Count > 0)
+                        {
+                            messages = Messages.ToArray();
+                            Messages.Clear();
+                        }
+                        else
+                        {
+                            Monitor.Pulse(Messages);
+                            Monitor.Wait(Messages);
+                        }
+
+                    } while (messages != null);
                 }
 
-                Thread.Sleep(5);
+                foreach (var message in messages)
+                    base.SendMessage(message);
             }
         }
     }
