@@ -5,7 +5,6 @@ public interface IRequest : ICommunication
     object Result { get; }
     string ResultKey { get; }
     RequestKey? RequestKey { get; }
-    Mutex Mutex { get; set; }
-    IRequest Initalize();
+    ManualResetEvent Sync { get; set; }
     void Done(object result);
 }

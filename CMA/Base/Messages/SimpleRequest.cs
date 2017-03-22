@@ -7,6 +7,7 @@ namespace CMA.Messages
         public SimpleRequest()
         {
             ResultKey = typeof (T).Name;
+            Result = default(T);
         }
 
         public T CastResult
@@ -15,34 +16,29 @@ namespace CMA.Messages
         }
 
         public object Result { get; private set; }
-        public string ResultKey { get; }
+        public string ResultKey { get; private set; }
 
         public RequestKey? RequestKey
         {
             get { return null; }
         }
 
-        public Mutex Mutex { get; set; }
-
-        public IRequest Initalize()
-        {
-            return this;
-        }
+        public ManualResetEvent Sync { get; set; }
 
         public void Done(object result)
         {
             Result = result;
 
-            if (Mutex != null)
-                Mutex.ReleaseMutex();
+            if (Sync != null)
+                Sync.Set();
         }
 
         public override void Fail()
         {
             base.Fail();
 
-            if (Mutex != null)
-                Mutex.ReleaseMutex();
+            if (Sync != null)
+                Sync.Set();
         }
     }
 }

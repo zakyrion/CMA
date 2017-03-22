@@ -5,7 +5,7 @@ namespace CMA.Messages
 {
     public class ThreadMessageManager : MessageManager
     {
-        protected object _lock;
+        protected object _lock = new object();
         protected Queue<IMessage> Messages = new Queue<IMessage>();
         protected Queue<IRequest> Requests = new Queue<IRequest>();
         protected Thread Thread;
@@ -36,10 +36,10 @@ namespace CMA.Messages
 
             lock (_lock)
             {
-                if (request.Mutex == null)
+                if (request.Sync == null)
                 {
                     isNeedToWait = true;
-                    request.Mutex = new Mutex();
+                    request.Sync = new ManualResetEvent(false);
                 }
 
                 Requests.Enqueue(request);       
@@ -47,7 +47,7 @@ namespace CMA.Messages
             }
 
             if (isNeedToWait)
-                request.Mutex.WaitOne();
+                request.Sync.WaitOne();
         }
 
         protected void Update()
@@ -92,6 +92,12 @@ namespace CMA.Messages
                         base.SendMessage(message);
                 }
             }
+        }
+
+        public override void Quit()
+        {
+            Thread.Abort();
+            base.Quit();
         }
     }
 }

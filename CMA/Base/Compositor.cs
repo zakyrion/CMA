@@ -113,6 +113,19 @@ namespace CMA
             return result;
         }
 
+        public virtual void Quit()
+        {
+            foreach (var component in Components)
+                component.Quit();
+
+            var components = new List<IComponent<K>>(Components);
+
+            foreach (var component in components)
+                RemoveComponent(component);
+
+            MessageManager.Quit();
+        }
+
         #endregion
 
         #region Messages

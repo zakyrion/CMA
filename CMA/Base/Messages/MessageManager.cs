@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CMA.Markers;
 using CMA.Messages.Mediators;
@@ -77,31 +78,38 @@ namespace CMA.Messages
 
         public virtual void SendMessage(IMessage message)
         {
-            var key = message.GetType().Name;
-
-            if (MessageRecievers.ContainsKey(key))
+            try
             {
-                for (var i = 0; i < MessageRecievers[key].Count; i++)
-                    MessageRecievers[key][i].Invoke(message);
-                return;
-            }
+                var key = message.GetType().Name;
 
-            if (MessageMediators.ContainsKey(key))
-            {
-                foreach (var messageMediator in MessageMediators[key])
-                    messageMediator.TransmitMessage(message);
-                return;
-            }
-
-            foreach (var marker in message.Markers)
-                if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
+                if (MessageRecievers.ContainsKey(key))
                 {
-                    foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
-                        handler.Invoke(message);
+                    for (var i = 0; i < MessageRecievers[key].Count; i++)
+                        MessageRecievers[key][i].Invoke(message);
                     return;
                 }
 
-            message.Fail();
+                if (MessageMediators.ContainsKey(key))
+                {
+                    foreach (var messageMediator in MessageMediators[key])
+                        messageMediator.TransmitMessage(message);
+                    return;
+                }
+
+                foreach (var marker in message.Markers)
+                    if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
+                    {
+                        foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
+                            handler.Invoke(message);
+                        return;
+                    }
+
+                message.Fail();
+            }
+            catch (Exception exception)
+            {
+                message.Fail();
+            }
         }
 
         public bool ContainsMessage<T>() where T : IMessage
@@ -190,33 +198,54 @@ namespace CMA.Messages
 
         public virtual object SendRequest(IRequest request)
         {
-            request.Initalize();
             TransmitRequest(request);
             return request.Result;
         }
 
         protected virtual void TransmitRequest(IRequest request)
         {
-            foreach (var marker in request.Markers)
-                if (MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
+            try
+            {
+                foreach (var marker in request.Markers)
+                    if (MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
+                    {
+                        MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
+                        return;
+                    }
+
+                if (request.RequestKey != null)
                 {
-                    MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
+                    if (RequestMediators.ContainsKey(request.RequestKey.Value))
+                    {
+                        RequestMediators[request.RequestKey.Value].TransmitRequest(request);
+                        return;
+                    }
+
+                    if (RequestRecievers.ContainsKey(request.RequestKey.Value))
+                    {
+                        RequestRecievers[request.RequestKey.Value].Invoke(request);
+                        return;
+                    }
+                }
+
+                if (SimpleRequestMediators.ContainsKey(request.ResultKey))
+                {
+                    SimpleRequestMediators[request.ResultKey].TransmitRequest(request);
                     return;
                 }
 
-            if (request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value))
-            {
-                RequestRecievers[request.RequestKey.Value].Invoke(request);
-                return;
-            }
+                if (SimpleRequestRecievers.ContainsKey(request.ResultKey))
+                {
+                    SimpleRequestRecievers[request.ResultKey].Invoke(request);
+                    return;
+                }
 
-            if (SimpleRequestRecievers.ContainsKey(request.ResultKey))
-            {
-                SimpleRequestRecievers[request.ResultKey].Invoke(request);
-                return;
+                request.Fail();
             }
-
-            request.Fail();
+            catch (Exception exception)
+            {
+                request.Fail();
+            }
         }
 
         #endregion
@@ -314,8 +343,10 @@ namespace CMA.Messages
         {
             var key = mediator.Key;
 
-            if (MessageMediators.ContainsKey(key))
-                MessageMediators[key].Remove(mediator);
+            if (!MessageMediators.ContainsKey(key))
+                MessageMediators.Add(key, new List<IMessageMediator>());
+
+            MessageMediators[key].Add(mediator);
         }
 
         public void SubscribeMediator(IRequestMediator mediator)
@@ -338,10 +369,21 @@ namespace CMA.Messages
         {
             var key = mediator.Key;
 
-            if (!MessageMediators.ContainsKey(key))
-                MessageMediators.Add(key, new List<IMessageMediator>());
+            if (MessageMediators.ContainsKey(key))
+                MessageMediators[key].Remove(mediator);
+        }
 
-            MessageMediators[key].Add(mediator);
+        public virtual void Quit()
+        {
+            MessageMediators.Clear();
+            MessageRecievers.Clear();
+            MarkerMessageRecievers.Clear();
+
+            RequestMediators.Clear();
+            RequestRecievers.Clear();
+            SimpleRequestMediators.Clear();
+            SimpleRequestRecievers.Clear();
+            MarkerRequestRecievers.Clear();
         }
 
         #endregion

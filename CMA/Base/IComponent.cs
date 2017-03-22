@@ -18,5 +18,6 @@ namespace CMA
         ICompositor<T> Owner { get; }
         void OnAdd(ICompositor<T> owner);
         void OnRemove();
+        void Quit();
     }
 }

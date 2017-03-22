@@ -14,5 +14,6 @@ namespace CMA
         T GetComponent<T>(K key);
         T GetComponent<T>();
         List<T> GetComponents<T>(K key);
+        void Quit();
     }
 }

@@ -52,11 +52,19 @@ namespace CMA
         {
         }
 
+        public virtual void Quit()
+        {
+            MessageManager.Quit();
+        }
+
         public abstract object Clone();
 
         public void SendMessage(IMessage message)
         {
-            MessageManager.SendMessage(message);
+            if (ContainsMessage(message))
+                MessageManager.SendMessage(message);
+
+            Owner.SendMessage(message);
         }
 
         public bool ContainsMessage<T1>() where T1 : IMessage
@@ -71,17 +79,27 @@ namespace CMA
 
         public object SendRequest(IRequest request)
         {
-            return MessageManager.SendRequest(request);
+            if (ContainsRequest(request))
+                return MessageManager.SendRequest(request);
+
+            return Owner.SendRequest(request);
         }
 
         public T1 SendRequest<T1>(IRequest request)
         {
-            return MessageManager.SendRequest<T1>(request);
+            if (ContainsRequest(request))
+                return MessageManager.SendRequest<T1>(request);
+
+            return Owner.SendRequest<T1>(request);
         }
 
         public T1 SendRequest<T1>()
         {
-            return MessageManager.SendRequest<T1>();
+            var request = new SimpleRequest<T1>();
+            if (ContainsRequest(request))
+                return MessageManager.SendRequest<T1>(request);
+
+            return Owner.SendRequest<T1>(request);
         }
 
         public bool ContainsRequest<T1>()

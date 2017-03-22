@@ -42,5 +42,7 @@ namespace CMA.Messages
         void SubscribeMediator(IRequestMediator mediator);
         void RemoveMediator(IRequestMediator mediator);
         void RemoveMediator(IMessageMediator mediator);
+
+        void Quit();
     }
 }

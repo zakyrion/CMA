@@ -4,34 +4,34 @@ public abstract class Request<R> : Communication, IRequest
 {
     public R CastResult
     {
-        get { return (R) Result; }
+        get { return (R)Result; }
     }
 
-    public virtual IRequest Initalize()
+    protected Request()
     {
-        ResultKey = typeof (R).Name;
+        ResultKey = typeof(R).Name;
         RequestKey = new RequestKey(ResultKey, GetType().Name);
-        return this;
+        Result = default(R);
     }
 
     public void Done(object result)
     {
         Result = result;
 
-        if (Mutex != null)
-            Mutex.ReleaseMutex();
+        if (Sync != null)
+            Sync.Set();
     }
 
     public override void Fail()
     {
         base.Fail();
 
-        if (Mutex != null)
-            Mutex.ReleaseMutex();
+        if (Sync != null)
+            Sync.Set();
     }
 
     public object Result { get; protected set; }
     public string ResultKey { get; protected set; }
     public RequestKey? RequestKey { get; protected set; }
-    public Mutex Mutex { get; set; }
+    public ManualResetEvent Sync { get; set; }
 }

@@ -1,4 +1,6 @@
-﻿namespace CMA
+﻿using CMA.Messages;
+
+namespace CMA
 {
     public abstract class ActorSystem<T> : Compositor<T>
     {
@@ -11,7 +13,12 @@
 
         protected ActorSystem()
         {
-            System = this;
+            System = MessageManager;
+        }
+
+        protected ActorSystem(IMessageManager messageManager) : base(messageManager)
+        {
+            System = MessageManager;
         }
     }
 }
