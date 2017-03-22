@@ -1,6 +1,11 @@
-﻿public interface IRequest : ICommunication
+﻿using System.Threading;
+
+public interface IRequest : ICommunication
 {
+    object Result { get; }
     string ResultKey { get; }
     RequestKey? RequestKey { get; }
-    IRequest Initalize<R>();
+    Mutex Mutex { get; set; }
+    IRequest Initalize();
+    void Done(object result);
 }

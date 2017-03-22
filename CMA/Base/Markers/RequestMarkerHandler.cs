@@ -14,7 +14,7 @@ namespace CMA.Markers
 
         public string Key
         {
-            get { return typeof(T).Name; }
+            get { return typeof (T).Name; }
         }
 
         public Delegate Delegate
@@ -24,7 +24,7 @@ namespace CMA.Markers
 
         public bool Contains(Delegate @delegate)
         {
-            return @delegate == (Delegate)DelegateField;
+            return @delegate == (Delegate) DelegateField;
         }
 
         public bool Equals(IRequestMarkerHandler handler)
@@ -32,9 +32,9 @@ namespace CMA.Markers
             return Contains(handler.Delegate);
         }
 
-        public object Invoke(IRequest request)
+        public void Invoke(IRequest request)
         {
-            return DelegateField(request, request.GetMarker<T>());
+            DelegateField(request, request.GetMarker<T>());
         }
     }
 }

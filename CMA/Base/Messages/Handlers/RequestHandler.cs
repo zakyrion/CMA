@@ -36,9 +36,10 @@ namespace CMA.Messages
             return Contains(handler.Delegate);
         }
 
-        public object Invoke(IRequest request)
+        public void Invoke(IRequest request)
         {
-            return DelegateField((K) request);
+            var result = DelegateField((K) request);
+            request.Done(result);
         }
     }
 }

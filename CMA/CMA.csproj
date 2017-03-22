@@ -41,6 +41,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Base\ActorSystem.cs" />
+    <Compile Include="Base\BindType.cs" />
     <Compile Include="Base\Builder\Builder.cs" />
     <Compile Include="Base\Builder\BuildManager.cs" />
     <Compile Include="Base\Builder\IBuilder.cs" />
@@ -69,6 +71,11 @@
     <Compile Include="Base\Messages\IMessageRespounder.cs" />
     <Compile Include="Base\Messages\IRequest.cs" />
     <Compile Include="Base\Messages\IRequestResult.cs" />
+    <Compile Include="Base\Messages\Mediators\IMessageMediator.cs" />
+    <Compile Include="Base\Messages\Mediators\IRequestMediator.cs" />
+    <Compile Include="Base\Messages\Mediators\MessageMediator.cs" />
+    <Compile Include="Base\Messages\Mediators\RequestMediator.cs" />
+    <Compile Include="Base\Messages\Mediators\SimpleRequestMediator.cs" />
     <Compile Include="Base\Messages\Message.cs" />
     <Compile Include="Base\Messages\MessageManager.cs" />
     <Compile Include="Base\Messages\Handlers\RequestHandler.cs" />

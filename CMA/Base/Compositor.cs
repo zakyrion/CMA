@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using CMA.Markers;
 using CMA.Messages;
+using CMA.Messages.Mediators;
 
 namespace CMA
 {
@@ -21,6 +22,8 @@ namespace CMA
         }
 
         #region Compositor
+
+        public virtual IMessageManager System { get; protected set; }
 
         public virtual bool Contains(K key)
         {
@@ -51,7 +54,7 @@ namespace CMA
             }
             else
             {
-                Cache.Add(component.Key, new List<IComponent<K>> { component });
+                Cache.Add(component.Key, new List<IComponent<K>> {component});
                 Components.Add(component);
                 component.OnAdd(this);
                 SubscribeComponent(component);
@@ -74,13 +77,13 @@ namespace CMA
             var result = default(T);
 
             if (Contains(key) && Cache[key][0] is T)
-                result = (T)Cache[key][0];
+                result = (T) Cache[key][0];
 
             return result;
         }
 
         /// <summary>
-        /// Return first available component who can be cast to type T
+        ///     Return first available component who can be cast to type T
         /// </summary>
         /// <typeparam name="T">type of result</typeparam>
         /// <returns></returns>
@@ -141,7 +144,10 @@ namespace CMA
 
         public virtual void SendMessage(IMessage message)
         {
-            MessageManager.SendMessage(message);
+            if (System.ContainsMessage(message))
+                System.SendMessage(message);
+            else
+                MessageManager.SendMessage(message);
         }
 
         public virtual bool ContainsMessage<T>() where T : IMessage
@@ -156,11 +162,17 @@ namespace CMA
 
         protected virtual void SubscribeComponent<T>(T component) where T : IComponent<K>
         {
+            foreach (var message in component.ToGlobalMessages)
+                System.SubscribeMediator(message);
+
+            foreach (var request in component.ToGlobalRequests)
+                System.SubscribeMediator(request);
+
             foreach (var message in component.ToOwnerMessages)
-                SubscribeMessageReciever(message);
+                SubscribeMediator(message);
 
             foreach (var request in component.ToOwnerRequests)
-                SubscribeRequestReciever(request);
+                SubscribeMediator(request);
 
             foreach (var marker in component.ToOwnerMessageMarkers)
                 AddMessageMarker(marker);
@@ -171,27 +183,39 @@ namespace CMA
 
         protected virtual void UnsubscribeComponent<T>(T component) where T : IComponent<K>
         {
+            foreach (var message in component.ToGlobalMessages)
+                System.RemoveMediator(message);
+
+            foreach (var request in component.ToGlobalRequests)
+                System.RemoveMediator(request);
+
             foreach (var message in component.ToOwnerMessages)
-                RemoveMessageReciever(message);
+                RemoveMediator(message);
 
             foreach (var request in component.ToOwnerRequests)
-                RemoveRequestReciever(request);
+                RemoveMediator(request);
+
+            foreach (var marker in component.ToOwnerMessageMarkers)
+                RemoveMessageMarker(marker);
+
+            foreach (var marker in component.ToOwnerRequestMarkers)
+                RemoveRequestMarker(marker);
         }
 
-        public virtual void SubscribeMessageReciever(IMessageHandler handler)
+        public virtual void SubscribeMessage(IMessageHandler handler)
         {
-            MessageManager.SubscribeMessageReciever(handler);
+            MessageManager.SubscribeMessage(handler);
         }
 
-        public virtual void SubscribeMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage
+        public virtual void SubscribeMessage<T>(MessageDelegate<T> @delegate) where T : IMessage
         {
-            MessageManager.SubscribeMessageReciever(@delegate);
+            MessageManager.SubscribeMessage(@delegate);
         }
 
-        public virtual void SubscribeMessageReciever<K1, T>(MessageDelegate<T> @delegate) where K1 : IMessage
+        public virtual void SubscribeMessage<K1, T>(MessageDelegate<T> @delegate) where K1 : IMessage
             where T : IMessage
         {
-            MessageManager.SubscribeMessageReciever<K1, T>(@delegate);
+            MessageManager.SubscribeMessage<K1, T>(@delegate);
         }
 
         public virtual void RemoveMessageReciever(IMessageHandler handler)
@@ -217,16 +241,25 @@ namespace CMA
 
         public virtual object SendRequest(IRequest request)
         {
+            if (System.ContainsRequest(request))
+                return System.SendRequest(request);
+
             return MessageManager.SendRequest(request);
         }
 
         public virtual T SendRequest<T>(IRequest request)
         {
+            if (System.ContainsRequest(request))
+                return System.SendRequest<T>(request);
+
             return MessageManager.SendRequest<T>(request);
         }
 
         public virtual T SendRequest<T>()
         {
+            if (System.ContainsRequest<T>())
+                return System.SendRequest<T>();
+
             return MessageManager.SendRequest<T>();
         }
 
@@ -240,19 +273,19 @@ namespace CMA
             return MessageManager.ContainsRequest(request);
         }
 
-        public virtual void SubscribeRequestReciever(IRequestHandler handler)
+        public virtual void SubscribeRequest(IRequestHandler handler)
         {
-            MessageManager.SubscribeRequestReciever(handler);
+            MessageManager.SubscribeRequest(handler);
         }
 
-        public void SubscribeRequestReciever<T>(RequestSimpleDelegate<T> @delegate)
+        public void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate)
         {
-            MessageManager.SubscribeRequestReciever(@delegate);
+            MessageManager.SubscribeRequest(@delegate);
         }
 
-        public void SubscribeRequestReciever<T, K1>(RequestDelegate<T, K1> @delegate) where K1 : IRequest
+        public void SubscribeRequest<T, K1>(RequestDelegate<T, K1> @delegate) where K1 : IRequest
         {
-            MessageManager.SubscribeRequestReciever<T, K1>(@delegate);
+            MessageManager.SubscribeRequest(@delegate);
         }
 
         public virtual void RemoveRequestReciever(IRequestHandler handler)
@@ -267,7 +300,27 @@ namespace CMA
 
         public void RemoveRequestReciever<T, K1>(RequestDelegate<T, K1> @delegate) where K1 : IRequest
         {
-            MessageManager.RemoveRequestReciever<T, K1>(@delegate);
+            MessageManager.RemoveRequestReciever(@delegate);
+        }
+
+        public void SubscribeMediator(IMessageMediator mediator)
+        {
+            MessageManager.SubscribeMediator(mediator);
+        }
+
+        public void SubscribeMediator(IRequestMediator mediator)
+        {
+            MessageManager.SubscribeMediator(mediator);
+        }
+
+        public void RemoveMediator(IRequestMediator mediator)
+        {
+            MessageManager.RemoveMediator(mediator);
+        }
+
+        public void RemoveMediator(IMessageMediator mediator)
+        {
+            MessageManager.RemoveMediator(mediator);
         }
 
         #endregion

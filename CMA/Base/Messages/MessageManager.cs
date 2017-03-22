@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using CMA.Markers;
+using CMA.Messages.Mediators;
 
 namespace CMA.Messages
 {
@@ -12,13 +13,22 @@ namespace CMA.Messages
         protected Dictionary<string, IRequestMarkerHandler> MarkerRequestRecievers =
             new Dictionary<string, IRequestMarkerHandler>();
 
+        protected Dictionary<string, List<IMessageMediator>> MessageMediators =
+            new Dictionary<string, List<IMessageMediator>>();
+
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
 
-        protected Dictionary<string, IRequestHandler> SimpleRequestRecievers = new Dictionary<string, IRequestHandler>();
+        protected Dictionary<RequestKey, IRequestMediator> RequestMediators =
+            new Dictionary<RequestKey, IRequestMediator>();
 
         protected Dictionary<RequestKey, IRequestHandler> RequestRecievers =
             new Dictionary<RequestKey, IRequestHandler>();
+
+        protected Dictionary<string, IRequestMediator> SimpleRequestMediators =
+            new Dictionary<string, IRequestMediator>();
+
+        protected Dictionary<string, IRequestHandler> SimpleRequestRecievers = new Dictionary<string, IRequestHandler>();
 
         #region Messages
 
@@ -68,30 +78,47 @@ namespace CMA.Messages
         public virtual void SendMessage(IMessage message)
         {
             var key = message.GetType().Name;
+
             if (MessageRecievers.ContainsKey(key))
+            {
                 for (var i = 0; i < MessageRecievers[key].Count; i++)
                     MessageRecievers[key][i].Invoke(message);
-            else
-                foreach (var marker in message.Markers)
-                    if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
-                        foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
-                            handler.Invoke(message);
+                return;
+            }
+
+            if (MessageMediators.ContainsKey(key))
+            {
+                foreach (var messageMediator in MessageMediators[key])
+                    messageMediator.TransmitMessage(message);
+                return;
+            }
+
+            foreach (var marker in message.Markers)
+                if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
+                {
+                    foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
+                        handler.Invoke(message);
+                    return;
+                }
+
+            message.Fail();
         }
 
         public bool ContainsMessage<T>() where T : IMessage
         {
-            var key = typeof(T).Name;
-            return MessageRecievers.ContainsKey(key);
+            var key = typeof (T).Name;
+            return MessageRecievers.ContainsKey(key) || MessageMediators.ContainsKey(key);
         }
 
         public bool ContainsMessage(IMessage message)
         {
             var key = message.GetType().Name;
             return MessageRecievers.ContainsKey(key) ||
-                   message.Markers.Any(marker => MarkerMessageRecievers.ContainsKey(marker.MarkerKey));
+                   message.Markers.Any(marker => MarkerMessageRecievers.ContainsKey(marker.MarkerKey)) ||
+                   MessageMediators.ContainsKey(key);
         }
 
-        public void SubscribeMessageReciever(IMessageHandler handler)
+        public void SubscribeMessage(IMessageHandler handler)
         {
             var key = handler.Key;
 
@@ -101,9 +128,9 @@ namespace CMA.Messages
             MessageRecievers[key].Add(handler);
         }
 
-        public virtual void SubscribeMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage
+        public virtual void SubscribeMessage<T>(MessageDelegate<T> @delegate) where T : IMessage
         {
-            var key = typeof(T).Name;
+            var key = typeof (T).Name;
 
             if (!MessageRecievers.ContainsKey(key))
                 MessageRecievers.Add(key, new List<IMessageHandler>());
@@ -111,10 +138,10 @@ namespace CMA.Messages
             MessageRecievers[key].Add(new MessageHandler<T>(@delegate));
         }
 
-        public virtual void SubscribeMessageReciever<K, T>(MessageDelegate<T> @delegate) where K : IMessage
+        public virtual void SubscribeMessage<K, T>(MessageDelegate<T> @delegate) where K : IMessage
             where T : IMessage
         {
-            var key = typeof(K).Name;
+            var key = typeof (K).Name;
 
             if (!MessageRecievers.ContainsKey(key))
                 MessageRecievers.Add(key, new List<IMessageHandler>());
@@ -138,7 +165,7 @@ namespace CMA.Messages
 
         public virtual void RemoveMessageReciever<T>() where T : IMessage
         {
-            var key = typeof(T).Name;
+            var key = typeof (T).Name;
 
             if (MessageRecievers.ContainsKey(key))
                 MessageRecievers.Remove(key);
@@ -146,7 +173,7 @@ namespace CMA.Messages
 
         public virtual void RemoveMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage
         {
-            var key = typeof(T).Name;
+            var key = typeof (T).Name;
 
             if (MessageRecievers.ContainsKey(key))
                 MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
@@ -155,29 +182,41 @@ namespace CMA.Messages
         public virtual void RemoveMessageReciever<K, T>(MessageDelegate<T> @delegate) where K : IMessage
             where T : IMessage
         {
-            var key = typeof(K).Name;
+            var key = typeof (K).Name;
 
             if (MessageRecievers.ContainsKey(key))
                 MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
         }
 
-        public object SendRequest(IRequest request)
+        public virtual object SendRequest(IRequest request)
         {
-            //сделать разделение реквестов с параметарми и без.
-            //реквесты без параметров хранятся в своей коллекции.
-            //реквесты с параметрами хранятся отдельно и проверяются на совпадение сообщения и результата
+            request.Initalize();
+            TransmitRequest(request);
+            return request.Result;
+        }
 
+        protected virtual void TransmitRequest(IRequest request)
+        {
             foreach (var marker in request.Markers)
                 if (MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
-                    return MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
+                {
+                    MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
+                    return;
+                }
 
             if (request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value))
-                return RequestRecievers[request.RequestKey.Value].Invoke(request);
+            {
+                RequestRecievers[request.RequestKey.Value].Invoke(request);
+                return;
+            }
 
             if (SimpleRequestRecievers.ContainsKey(request.ResultKey))
-                return SimpleRequestRecievers[request.ResultKey].Invoke(request);
+            {
+                SimpleRequestRecievers[request.ResultKey].Invoke(request);
+                return;
+            }
 
-            return null;
+            request.Fail();
         }
 
         #endregion
@@ -186,29 +225,33 @@ namespace CMA.Messages
 
         public virtual T SendRequest<T>(IRequest request)
         {
-            if (typeof (T) != typeof(object))
-                request.Initalize<T>();
-
-            return (T)SendRequest(request);
+            SendRequest(request);
+            return (T) request.Result;
         }
 
-        public T SendRequest<T>()
+        public virtual T SendRequest<T>()
         {
             return SendRequest<T>(new SimpleRequest<T>());
         }
 
         public bool ContainsRequest<T>()
         {
-            var key = typeof(T).Name;
-            return SimpleRequestRecievers.ContainsKey(key);
+            var key = typeof (T).Name;
+            return SimpleRequestRecievers.ContainsKey(key) || SimpleRequestMediators.ContainsKey(key);
         }
 
         public bool ContainsRequest(IRequest request)
         {
-            return request.Markers.Any(marker => MarkerRequestRecievers.ContainsKey(marker.MarkerKey)) || request.RequestKey != null && RequestRecievers.ContainsKey(request.RequestKey.Value) || SimpleRequestRecievers.ContainsKey(request.ResultKey);
+            return request.Markers.Any(marker => MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
+                   ||
+                   (request.RequestKey != null &&
+                    (RequestRecievers.ContainsKey(request.RequestKey.Value) ||
+                     RequestMediators.ContainsKey(request.RequestKey.Value))) ||
+                   SimpleRequestRecievers.ContainsKey(request.ResultKey) ||
+                   SimpleRequestMediators.ContainsKey(request.ResultKey);
         }
 
-        public void SubscribeRequestReciever(IRequestHandler handler)
+        public void SubscribeRequest(IRequestHandler handler)
         {
             if (handler.MessageKey != null)
             {
@@ -222,16 +265,16 @@ namespace CMA.Messages
             }
         }
 
-        public virtual void SubscribeRequestReciever<T>(RequestSimpleDelegate<T> @delegate)
+        public virtual void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate)
         {
-            var key = typeof(T).Name;
+            var key = typeof (T).Name;
             SimpleRequestRecievers[key] = new RequestSimpleHandler<T>(@delegate);
         }
 
-        public virtual void SubscribeRequestReciever<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
+        public virtual void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
         {
-            var key = typeof(T).Name;
-            var messageKey = typeof(K).Name;
+            var key = typeof (T).Name;
+            var messageKey = typeof (K).Name;
             var requestKey = new RequestKey(key, messageKey);
             RequestRecievers[requestKey] = new RequestHandler<T, K>(@delegate);
         }
@@ -245,13 +288,13 @@ namespace CMA.Messages
             if (messageKey == null && SimpleRequestRecievers.ContainsKey(key))
                 SimpleRequestRecievers.Remove(key);
             else if (messageKey != null && RequestRecievers.ContainsKey(requsetKey) &&
-                RequestRecievers[requsetKey].Equals(handler))
+                     RequestRecievers[requsetKey].Equals(handler))
                 RequestRecievers.Remove(requsetKey);
         }
 
         public virtual void RemoveRequestReciever<T>(RequestSimpleDelegate<T> @delegate)
         {
-            var key = typeof(T).Name;
+            var key = typeof (T).Name;
             if (SimpleRequestRecievers.ContainsKey(key))
                 SimpleRequestRecievers.Remove(key);
         }
@@ -259,12 +302,46 @@ namespace CMA.Messages
         public virtual void RemoveRequestReciever<T, K>(RequestDelegate<T, K> @delegate)
             where K : IRequest
         {
-            var key = typeof(T).Name;
-            var messageKey = typeof(T).Name;
+            var key = typeof (T).Name;
+            var messageKey = typeof (T).Name;
 
             var requsetKey = new RequestKey(key, messageKey);
             if (RequestRecievers.ContainsKey(requsetKey))
                 RequestRecievers.Remove(requsetKey);
+        }
+
+        public void SubscribeMediator(IMessageMediator mediator)
+        {
+            var key = mediator.Key;
+
+            if (MessageMediators.ContainsKey(key))
+                MessageMediators[key].Remove(mediator);
+        }
+
+        public void SubscribeMediator(IRequestMediator mediator)
+        {
+            if (mediator.RequestKey == null)
+                SimpleRequestMediators[mediator.ResultKey] = mediator;
+            else
+                RequestMediators[mediator.RequestKey.Value] = mediator;
+        }
+
+        public void RemoveMediator(IRequestMediator mediator)
+        {
+            if (mediator.RequestKey == null)
+                SimpleRequestMediators.Remove(mediator.ResultKey);
+            else
+                RequestMediators.Remove(mediator.RequestKey.Value);
+        }
+
+        public void RemoveMediator(IMessageMediator mediator)
+        {
+            var key = mediator.Key;
+
+            if (!MessageMediators.ContainsKey(key))
+                MessageMediators.Add(key, new List<IMessageMediator>());
+
+            MessageMediators[key].Add(mediator);
         }
 
         #endregion

@@ -9,6 +9,6 @@ namespace CMA.Messages
         Delegate Delegate { get; }
         bool Contains(Delegate @delegate);
         bool Equals(IRequestHandler handler);
-        object Invoke(IRequest request);
+        void Invoke(IRequest request);
     }
 }

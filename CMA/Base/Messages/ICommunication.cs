@@ -3,6 +3,7 @@ using CMA.Markers;
 
 public interface ICommunication
 {
+    bool IsFaild { get; }
     List<IMarker> Markers { get; }
     List<IMarker> ReturningMarkers { get; }
     void AddMarkerForReturn(IMarker marker);
@@ -11,4 +12,5 @@ public interface ICommunication
     T GetReturningMarker<T>() where T : IMarker;
     bool Contains<T>();
     void AddMarkers(IEnumerable<IMarker> markers);
+    void Fail();
 }

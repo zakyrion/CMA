@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using CMA.Markers;
 using CMA.Messages;
+using CMA.Messages.Mediators;
 
 namespace CMA
 {
@@ -16,8 +17,11 @@ namespace CMA
         {
             Key = key;
 
-            ToOwnerMessages = new List<IMessageHandler>();
-            ToOwnerRequests = new List<IRequestHandler>();
+            ToOwnerMessages = new List<IMessageMediator>();
+            ToGlobalMessages = new List<IMessageMediator>();
+
+            ToOwnerRequests = new List<IRequestMediator>();
+            ToGlobalRequests = new List<IRequestMediator>();
 
             ToOwnerMessageMarkers = new List<IMessageMarkerHandler>();
             ToOwnerRequestMarkers = new List<IRequestMarkerHandler>();
@@ -30,8 +34,10 @@ namespace CMA
             MessageManager = messageManager;
         }
 
-        public List<IMessageHandler> ToOwnerMessages { get; protected set; }
-        public List<IRequestHandler> ToOwnerRequests { get; protected set; }
+        public List<IMessageMediator> ToGlobalMessages { get; protected set; }
+        public List<IRequestMediator> ToGlobalRequests { get; protected set; }
+        public List<IMessageMediator> ToOwnerMessages { get; protected set; }
+        public List<IRequestMediator> ToOwnerRequests { get; protected set; }
         public List<IMessageMarkerHandler> ToOwnerMessageMarkers { get; protected set; }
         public List<IRequestMarkerHandler> ToOwnerRequestMarkers { get; protected set; }
         public virtual T Key { get; protected set; }
@@ -70,7 +76,7 @@ namespace CMA
 
         public T1 SendRequest<T1>(IRequest request)
         {
-            return (T1) MessageManager.SendRequest(request);
+            return MessageManager.SendRequest<T1>(request);
         }
 
         public T1 SendRequest<T1>()
@@ -99,22 +105,42 @@ namespace CMA
             ToOwnerRequestMarkers.Add(new RequestMarkerHandler<T>(@delegate));
         }
 
-        protected virtual void SubscribeMessageRecieverToOwner<T>(MessageDelegate<T> @delegate) where T : IMessage
+        protected virtual void SubscribeMessage<T>(MessageDelegate<T> @delegate, BindType bindType = BindType.ToOwner)
+            where T : IMessage
         {
-            MessageManager.SubscribeMessageReciever(new MessageHandler<T>(@delegate));
-            ToOwnerMessages.Add(new MessageHandler<T>(delegate(T message) { MessageManager.SendMessage(message); }));
+            MessageManager.SubscribeMessage(new MessageHandler<T>(@delegate));
+
+            var mediator = new MessageMediator<T>(MessageManager);
+
+            if (bindType == BindType.ToOwner)
+                ToOwnerMessages.Add(mediator);
+            else
+                ToGlobalMessages.Add(mediator);
         }
 
-        protected virtual void SubscribeRequestRecieverToOwner<T>(RequestSimpleDelegate<T> @delegate)
+        protected virtual void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate,
+            BindType bindType = BindType.ToOwner)
         {
-            MessageManager.SubscribeRequestReciever(new RequestSimpleHandler<T>(@delegate));
-            ToOwnerRequests.Add(new RequestSimpleHandler<T>(() => MessageManager.SendRequest<T>()));
+            MessageManager.SubscribeRequest(new RequestSimpleHandler<T>(@delegate));
+
+            var handler = new SimpleRequestMediator<T>(MessageManager);
+
+            if (bindType == BindType.ToOwner)
+                ToOwnerRequests.Add(handler);
+            else
+                ToGlobalRequests.Add(handler);
         }
 
-        protected virtual void SubscribeRequestRecieverToOwner<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
+        protected virtual void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate,
+            BindType bindType = BindType.ToOwner) where K : IRequest
         {
-            MessageManager.SubscribeRequestReciever(new RequestHandler<T, K>(@delegate));
-            ToOwnerRequests.Add(new RequestHandler<T, K>(message => MessageManager.SendRequest<T>(message)));
+            MessageManager.SubscribeRequest(new RequestHandler<T, K>(@delegate));
+            var handler = new RequestMediatorM<T, K>(MessageManager);
+
+            if (bindType == BindType.ToOwner)
+                ToOwnerRequests.Add(handler);
+            else
+                ToGlobalRequests.Add(handler);
         }
 
         protected virtual void Subscribe()

@@ -5,6 +5,7 @@ namespace CMA.Messages
 {
     public class ThreadMessageManager : MessageManager
     {
+        protected object _lock;
         protected Queue<IMessage> Messages = new Queue<IMessage>();
         protected Queue<IRequest> Requests = new Queue<IRequest>();
         protected Thread Thread;
@@ -22,22 +23,31 @@ namespace CMA.Messages
 
         public override void SendMessage(IMessage message)
         {
-            lock (Messages)
+            lock (_lock)
             {
                 Messages.Enqueue(message);
-                Monitor.Pulse(Messages);
+                Monitor.Pulse(_lock);
             }
         }
 
-        public override T SendRequest<T>(IRequest request)
+        protected override void TransmitRequest(IRequest request)
         {
-            lock (Requests)
+            bool isNeedToWait = false;
+
+            lock (_lock)
             {
-                Requests.Enqueue(request);
+                if (request.Mutex == null)
+                {
+                    isNeedToWait = true;
+                    request.Mutex = new Mutex();
+                }
+
+                Requests.Enqueue(request);       
+                Monitor.Pulse(_lock);
             }
 
-            Thread.Sleep(Timeout.Infinite);
-            return base.SendRequest<T>(request);
+            if (isNeedToWait)
+                request.Mutex.WaitOne();
         }
 
         protected void Update()
@@ -45,8 +55,9 @@ namespace CMA.Messages
             while (true)
             {
                 IMessage[] messages = null;
+                IRequest[] requests = null;
 
-                lock (Messages)
+                lock (_lock)
                 {
                     do
                     {
@@ -55,17 +66,31 @@ namespace CMA.Messages
                             messages = Messages.ToArray();
                             Messages.Clear();
                         }
+                        else if (Requests.Count > 0)
+                        {
+                            requests = Requests.ToArray();
+                            Requests.Clear();
+                        }
                         else
                         {
-                            Monitor.Pulse(Messages);
-                            Monitor.Wait(Messages);
+                            Monitor.Pulse(_lock);
+                            Monitor.Wait(_lock);
                         }
 
-                    } while (messages != null);
+                    } while (messages == null && requests == null);
                 }
 
-                foreach (var message in messages)
-                    base.SendMessage(message);
+                if (requests != null)
+                {
+                    foreach (var request in requests)
+                        base.TransmitRequest(request);
+                }
+
+                if (messages != null)
+                {
+                    foreach (var message in messages)
+                        base.SendMessage(message);
+                }
             }
         }
     }

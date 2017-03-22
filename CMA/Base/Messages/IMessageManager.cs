@@ -1,4 +1,5 @@
 ﻿using CMA.Markers;
+using CMA.Messages.Mediators;
 
 namespace CMA.Messages
 {
@@ -22,19 +23,24 @@ namespace CMA.Messages
 
         IMessageManager NewWithType();
 
-        void SubscribeMessageReciever(IMessageHandler handler);
-        void SubscribeMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage;
-        void SubscribeMessageReciever<K, T>(MessageDelegate<T> @delegate) where T : IMessage where K : IMessage;
+        void SubscribeMessage(IMessageHandler handler);
+        void SubscribeMessage<T>(MessageDelegate<T> @delegate) where T : IMessage;
+        void SubscribeMessage<K, T>(MessageDelegate<T> @delegate) where T : IMessage where K : IMessage;
         void RemoveMessageReciever(IMessageHandler handler);
         void RemoveMessageReciever<T>() where T : IMessage;
         void RemoveMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage;
         void RemoveMessageReciever<K, T>(MessageDelegate<T> @delegate) where T : IMessage where K : IMessage;
 
-        void SubscribeRequestReciever(IRequestHandler handler);
-        void SubscribeRequestReciever<T>(RequestSimpleDelegate<T> @delegate);
-        void SubscribeRequestReciever<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest;
+        void SubscribeRequest(IRequestHandler handler);
+        void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate);
+        void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest;
         void RemoveRequestReciever(IRequestHandler handler);
         void RemoveRequestReciever<T>(RequestSimpleDelegate<T> @delegate);
         void RemoveRequestReciever<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest;
+
+        void SubscribeMediator(IMessageMediator mediator);
+        void SubscribeMediator(IRequestMediator mediator);
+        void RemoveMediator(IRequestMediator mediator);
+        void RemoveMediator(IMessageMediator mediator);
     }
 }

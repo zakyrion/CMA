@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using CMA.Markers;
 using CMA.Messages;
+using CMA.Messages.Mediators;
 
 namespace CMA
 {
     public interface IComponent<T> : ICloneable, IMessageRespounder
     {
-        List<IMessageHandler> ToOwnerMessages { get; }
-        List<IRequestHandler> ToOwnerRequests { get; }
+        List<IMessageMediator> ToGlobalMessages { get; }
+        List<IRequestMediator> ToGlobalRequests { get; }
+        List<IMessageMediator> ToOwnerMessages { get; }
+        List<IRequestMediator> ToOwnerRequests { get; }
         List<IMessageMarkerHandler> ToOwnerMessageMarkers { get; }
         List<IRequestMarkerHandler> ToOwnerRequestMarkers { get; }
         T Key { get; }

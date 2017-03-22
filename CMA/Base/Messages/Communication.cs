@@ -12,6 +12,7 @@ public abstract class Communication : ICommunication
         ReturningMarkers = new List<IMarker>();
     }
 
+    public bool IsFaild { get; protected set; }
     public List<IMarker> Markers { get; protected set; }
     public List<IMarker> ReturningMarkers { get; protected set; }
 
@@ -49,5 +50,10 @@ public abstract class Communication : ICommunication
     {
         foreach (var marker in markers)
             AddMarker(marker);
+    }
+
+    public virtual void Fail()
+    {
+        IsFaild = true;
     }
 }
