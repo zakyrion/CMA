@@ -11,6 +11,9 @@ namespace CMA
     /// <typeparam name="K">key for compositor</typeparam>
     public class CompositorComponent<T, K> : Compositor<T>, IComponent<K>
     {
+        private bool _isGlobalSubscribe;
+        private bool _isOwnerSubscribe;
+
         public CompositorComponent(K key)
         {
             Key = key;
@@ -72,10 +75,84 @@ namespace CMA
         {
             Owner = owner;
             System = owner.System;
+
+            if (System != null)
+            {
+                foreach (var component in Components)
+                    component.SubscribeGlobal();
+            }
+
+            if (!_isOwnerSubscribe)
+            {
+                _isOwnerSubscribe = true;
+                foreach (var mediator in ToOwnerMessages)
+                    Owner.SubscribeMediator(mediator);
+
+                foreach (var mediator in ToOwnerRequests)
+                    Owner.SubscribeMediator(mediator);
+
+                foreach (var marker in ToOwnerMessageMarkers)
+                    Owner.AddMessageMarker(marker);
+
+                foreach (var marker in ToOwnerRequestMarkers)
+                    Owner.AddRequestMarker(marker);
+            }
         }
 
         public virtual void OnRemove()
         {
+            if (_isOwnerSubscribe)
+            {
+                foreach (var mediator in ToOwnerMessages)
+                    Owner.RemoveMediator(mediator);
+
+                foreach (var mediator in ToOwnerRequests)
+                    Owner.RemoveMediator(mediator);
+
+                foreach (var marker in ToOwnerMessageMarkers)
+                    Owner.RemoveMessageMarker(marker);
+
+                foreach (var marker in ToOwnerRequestMarkers)
+                    Owner.RemoveRequestMarker(marker);
+
+                _isOwnerSubscribe = false;
+            }
+
+            RemoveGlobal();
+
+            Owner = null;
+        }
+
+        public virtual void SubscribeGlobal()
+        {
+            foreach (var component in Components)
+                component.SubscribeGlobal();
+
+            if (!_isGlobalSubscribe)
+            {
+                _isGlobalSubscribe = true;
+                foreach (var mediator in ToGlobalMessages)
+                    Owner.System.SubscribeMediator(mediator);
+
+                foreach (var mediator in ToGlobalRequests)
+                    Owner.System.SubscribeMediator(mediator);
+            }
+        }
+
+        public virtual void RemoveGlobal()
+        {
+            foreach (var component in Components)
+                component.RemoveGlobal();
+
+            if (_isGlobalSubscribe)
+            {
+                foreach (var mediator in ToGlobalMessages)
+                    Owner.System.RemoveMediator(mediator);
+
+                foreach (var mediator in ToGlobalRequests)
+                    Owner.System.RemoveMediator(mediator);
+                _isGlobalSubscribe = false;
+            }
         }
 
         public virtual object Clone()
@@ -100,8 +177,6 @@ namespace CMA
         {
             var result = default(T1);
 
-            if (System.ContainsRequest<T1>())
-                result = System.SendRequest<T1>();
             if (ContainsRequest<T1>())
                 result = base.SendRequest<T1>();
             else if (Owner != null && !IsRoot)
@@ -112,9 +187,7 @@ namespace CMA
 
         public override void SendMessage(IMessage message)
         {
-            if (System.ContainsMessage(message))
-                System.SendMessage(message);
-            else if (ContainsMessage(message))
+            if (ContainsMessage(message))
                 base.SendMessage(message);
             else if (Owner != null && !IsRoot)
             {
@@ -123,6 +196,8 @@ namespace CMA
 
                 Owner.SendMessage(message);
             }
+            else
+                message.Fail();
         }
 
         /// <summary>
@@ -186,7 +261,7 @@ namespace CMA
         }
 
         protected virtual void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate,
-           BindType bindType = BindType.ToOwner)
+            BindType bindType = BindType.ToOwner)
         {
             MessageManager.SubscribeRequest(new RequestSimpleHandler<T>(@delegate));
 

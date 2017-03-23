@@ -7,4 +7,5 @@ public interface IRequest : ICommunication
     RequestKey? RequestKey { get; }
     ManualResetEvent Sync { get; set; }
     void Done(object result);
+    int ThreadId { get; }
 }

@@ -12,6 +12,7 @@ public abstract class Request<R> : Communication, IRequest
         ResultKey = typeof(R).Name;
         RequestKey = new RequestKey(ResultKey, GetType().Name);
         Result = default(R);
+        ThreadId = Thread.CurrentThread.ManagedThreadId;
     }
 
     public void Done(object result)
@@ -21,6 +22,8 @@ public abstract class Request<R> : Communication, IRequest
         if (Sync != null)
             Sync.Set();
     }
+
+    public int ThreadId { get; protected set; }
 
     public override void Fail()
     {

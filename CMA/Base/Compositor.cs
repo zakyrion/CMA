@@ -49,7 +49,6 @@ namespace CMA
                     Cache[component.Key].Add(component);
                     Components.Add(component);
                     component.OnAdd(this);
-                    SubscribeComponent(component);
                 }
             }
             else
@@ -57,7 +56,6 @@ namespace CMA
                 Cache.Add(component.Key, new List<IComponent<K>> {component});
                 Components.Add(component);
                 component.OnAdd(this);
-                SubscribeComponent(component);
             }
         }
 
@@ -67,8 +65,8 @@ namespace CMA
             if (Contains(component))
             {
                 Components.Remove(component);
+                component.OnRemove();
                 Cache[component.Key].Remove(component);
-                UnsubscribeComponent(component);
             }
         }
 
@@ -157,10 +155,7 @@ namespace CMA
 
         public virtual void SendMessage(IMessage message)
         {
-            if (System.ContainsMessage(message))
-                System.SendMessage(message);
-            else
-                MessageManager.SendMessage(message);
+            MessageManager.SendMessage(message);
         }
 
         public virtual bool ContainsMessage<T>() where T : IMessage
@@ -171,48 +166,6 @@ namespace CMA
         public virtual bool ContainsMessage(IMessage message)
         {
             return MessageManager.ContainsMessage(message);
-        }
-
-        protected virtual void SubscribeComponent<T>(T component) where T : IComponent<K>
-        {
-            foreach (var message in component.ToGlobalMessages)
-                System.SubscribeMediator(message);
-
-            foreach (var request in component.ToGlobalRequests)
-                System.SubscribeMediator(request);
-
-            foreach (var message in component.ToOwnerMessages)
-                SubscribeMediator(message);
-
-            foreach (var request in component.ToOwnerRequests)
-                SubscribeMediator(request);
-
-            foreach (var marker in component.ToOwnerMessageMarkers)
-                AddMessageMarker(marker);
-
-            foreach (var marker in component.ToOwnerRequestMarkers)
-                AddRequestMarker(marker);
-        }
-
-        protected virtual void UnsubscribeComponent<T>(T component) where T : IComponent<K>
-        {
-            foreach (var message in component.ToGlobalMessages)
-                System.RemoveMediator(message);
-
-            foreach (var request in component.ToGlobalRequests)
-                System.RemoveMediator(request);
-
-            foreach (var message in component.ToOwnerMessages)
-                RemoveMediator(message);
-
-            foreach (var request in component.ToOwnerRequests)
-                RemoveMediator(request);
-
-            foreach (var marker in component.ToOwnerMessageMarkers)
-                RemoveMessageMarker(marker);
-
-            foreach (var marker in component.ToOwnerRequestMarkers)
-                RemoveRequestMarker(marker);
         }
 
         public virtual void SubscribeMessage(IMessageHandler handler)

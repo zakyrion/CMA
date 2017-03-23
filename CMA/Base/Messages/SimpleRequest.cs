@@ -8,6 +8,7 @@ namespace CMA.Messages
         {
             ResultKey = typeof (T).Name;
             Result = default(T);
+            ThreadId = Thread.CurrentThread.ManagedThreadId;
         }
 
         public T CastResult
@@ -32,6 +33,8 @@ namespace CMA.Messages
             if (Sync != null)
                 Sync.Set();
         }
+
+        public int ThreadId { get; private set; }
 
         public override void Fail()
         {

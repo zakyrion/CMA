@@ -32,22 +32,27 @@ namespace CMA.Messages
 
         protected override void TransmitRequest(IRequest request)
         {
-            bool isNeedToWait = false;
-
-            lock (_lock)
+            if (request.ThreadId == Thread.ManagedThreadId)
+                base.TransmitRequest(request);
+            else
             {
-                if (request.Sync == null)
+                bool isNeedToWait = false;
+
+                lock (_lock)
                 {
-                    isNeedToWait = true;
-                    request.Sync = new ManualResetEvent(false);
+                    if (request.Sync == null)
+                    {
+                        isNeedToWait = true;
+                        request.Sync = new ManualResetEvent(false);
+                    }
+
+                    Requests.Enqueue(request);
+                    Monitor.Pulse(_lock);
                 }
 
-                Requests.Enqueue(request);       
-                Monitor.Pulse(_lock);
+                if (isNeedToWait)
+                    request.Sync.WaitOne();
             }
-
-            if (isNeedToWait)
-                request.Sync.WaitOne();
         }
 
         protected void Update()
