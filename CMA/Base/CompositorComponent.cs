@@ -254,6 +254,14 @@ namespace CMA
 
             var mediator = new MessageMediator<T>(MessageManager);
 
+            if (Owner != null)
+            {
+                if (bindType == BindType.ToOwner)
+                    Owner.SubscribeMediator(mediator);
+                else if (Owner.System != null)
+                    Owner.System.SubscribeMediator(mediator);
+            }
+
             if (bindType == BindType.ToOwner)
                 ToOwnerMessages.Add(mediator);
             else
@@ -265,24 +273,40 @@ namespace CMA
         {
             MessageManager.SubscribeRequest(new RequestSimpleHandler<T>(@delegate));
 
-            var handler = new SimpleRequestMediator<T>(MessageManager);
+            var mediator = new SimpleRequestMediator<T>(MessageManager);
+
+            if (Owner != null)
+            {
+                if (bindType == BindType.ToOwner)
+                    Owner.SubscribeMediator(mediator);
+                else if (Owner.System != null)
+                    Owner.System.SubscribeMediator(mediator);
+            }
 
             if (bindType == BindType.ToOwner)
-                ToOwnerRequests.Add(handler);
+                ToOwnerRequests.Add(mediator);
             else
-                ToGlobalRequests.Add(handler);
+                ToGlobalRequests.Add(mediator);
         }
 
         protected virtual void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate,
             BindType bindType = BindType.ToOwner) where K : IRequest
         {
             MessageManager.SubscribeRequest(new RequestHandler<T, K>(@delegate));
-            var handler = new RequestMediatorM<T, K>(MessageManager);
+            var mediator = new RequestMediatorM<T, K>(MessageManager);
+
+            if (Owner != null)
+            {
+                if (bindType == BindType.ToOwner)
+                    Owner.SubscribeMediator(mediator);
+                else if (Owner.System != null)
+                    Owner.System.SubscribeMediator(mediator);
+            }
 
             if (bindType == BindType.ToOwner)
-                ToOwnerRequests.Add(handler);
+                ToOwnerRequests.Add(mediator);
             else
-                ToGlobalRequests.Add(handler);
+                ToGlobalRequests.Add(mediator);
         }
     }
 }
