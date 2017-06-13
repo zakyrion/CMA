@@ -1,4 +1,17 @@
-﻿using System.Collections.Generic;
+﻿//   Copyright {CMA} {Kharsun Sergei}
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+
+//       http://www.apache.org/licenses/LICENSE-2.0
+
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+using System.Collections.Generic;
 using CMA.Markers;
 using CMA.Messages;
 using CMA.Messages.Mediators;
@@ -14,20 +27,48 @@ namespace CMA
         public Compositor()
         {
             MessageManager = new MessageManager();
+            MessageManager.TraceMarker = TraceMarker;
+            Id = MessageManager.Id;
         }
 
         public Compositor(IMessageManager manager)
         {
             MessageManager = manager;
+            MessageManager.TraceMarker = TraceMarker;
+            Id = MessageManager.Id;
         }
 
         #region Compositor
 
         public virtual IMessageManager System { get; protected set; }
 
+        public virtual bool RemapComponent(K oldKey, K newKey)
+        {
+            bool result = false;
+
+            if (Contains(oldKey))
+            {
+                result = true;
+                var components = new List<IComponent<K>>(Cache[oldKey]);
+                Cache[oldKey].Clear();
+
+                foreach (var component in components)
+                {
+                    component.ChangeKey(newKey);
+
+                    if (!Cache.ContainsKey(newKey))
+                        Cache[newKey] = new List<IComponent<K>>();
+
+                    Cache[newKey].Add(component);
+                }
+            }
+
+            return result;
+        }
+
         public virtual bool Contains(K key)
         {
-            return Cache.ContainsKey(key);
+            return Cache.ContainsKey(key) && Cache[key].Count > 0;
         }
 
         public bool Contains<T>(T component) where T : IComponent<K>
@@ -53,7 +94,7 @@ namespace CMA
             }
             else
             {
-                Cache.Add(component.Key, new List<IComponent<K>> {component});
+                Cache.Add(component.Key, new List<IComponent<K>> { component });
                 Components.Add(component);
                 component.OnAdd(this);
             }
@@ -70,12 +111,26 @@ namespace CMA
             }
         }
 
+        public void RemoveComponent(K key)
+        {
+            if (Contains(key))
+            {
+                var components = new List<IComponent<K>>(Cache[key]);
+                foreach (var component in components)
+                {
+                    component.OnRemove();
+                    Components.Remove(component);
+                    Cache[component.Key].Remove(component);
+                }
+            }
+        }
+
         public virtual T GetComponent<T>(K key)
         {
             var result = default(T);
 
             if (Contains(key) && Cache[key][0] is T)
-                result = (T) Cache[key][0];
+                result = (T)Cache[key][0];
 
             return result;
         }
@@ -93,7 +148,7 @@ namespace CMA
             {
                 if (component is T)
                 {
-                    result = (T) component;
+                    result = (T)component;
                     break;
                 }
             }
@@ -128,6 +183,9 @@ namespace CMA
 
         #region Messages
 
+        public int Id { get; protected set; }
+        public virtual string TraceMarker { protected get { return GetType().Name; } set { } }
+
         public virtual void AddRequestMarker(IRequestMarkerHandler handler)
         {
             MessageManager.AddRequestMarker(handler);
@@ -155,6 +213,9 @@ namespace CMA
 
         public virtual void SendMessage(IMessage message)
         {
+            if (System != null && !message.IsContainsManagerId(System.Id) && System.ContainsMessage(message))
+                System.SendMessage(message);
+
             MessageManager.SendMessage(message);
         }
 
@@ -207,7 +268,7 @@ namespace CMA
 
         public virtual object SendRequest(IRequest request)
         {
-            if (System.ContainsRequest(request))
+            if (System != null && !request.IsContainsManagerId(System.Id) && System.ContainsRequest(request))
                 return System.SendRequest(request);
 
             return MessageManager.SendRequest(request);
@@ -215,7 +276,7 @@ namespace CMA
 
         public virtual T SendRequest<T>(IRequest request)
         {
-            if (System.ContainsRequest(request))
+            if (System != null && !request.IsContainsManagerId(System.Id) && System.ContainsRequest(request))
                 return System.SendRequest<T>(request);
 
             return MessageManager.SendRequest<T>(request);
@@ -223,7 +284,7 @@ namespace CMA
 
         public virtual T SendRequest<T>()
         {
-            if (System.ContainsRequest<T>())
+            if (System != null && System.ContainsRequest<T>())
                 return System.SendRequest<T>();
 
             return MessageManager.SendRequest<T>();

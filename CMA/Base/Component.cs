@@ -1,4 +1,17 @@
-﻿using System.Collections.Generic;
+﻿//   Copyright {CMA} {Kharsun Sergei}
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+
+//       http://www.apache.org/licenses/LICENSE-2.0
+
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+using System.Collections.Generic;
 using CMA.Messages;
 using CMA.Messages.Mediators;
 
@@ -13,6 +26,7 @@ namespace CMA
 
         protected Component(T key) : this(key, new MessageManager())
         {
+            MessageManager.TraceMarker = GetType().Name;
         }
 
         protected Component(T key, IMessageManager messageManager) : this(messageManager)
@@ -37,12 +51,21 @@ namespace CMA
         public List<IRequestMediator> ToGlobalRequests { get; protected set; }
         public List<IMessageMediator> ToOwnerMessages { get; protected set; }
         public List<IRequestMediator> ToOwnerRequests { get; protected set; }
+
+        public void ChangeKey(T newKey)
+        {
+            Key = newKey;
+        }
+
         public virtual T Key { get; protected set; }
         public virtual ICompositor<T> Owner { get; protected set; }
 
         public virtual void OnAdd(ICompositor<T> owner)
         {
             Owner = owner;
+
+            if (!_isGlobalSubscribe && Owner.System != null)
+                SubscribeGlobal();
 
             if (!_isOwnerSubscribe)
             {
@@ -88,6 +111,19 @@ namespace CMA
 
                 foreach (var mediator in ToGlobalRequests)
                     Owner.System.SubscribeMediator(mediator);
+            }
+        }
+
+        public void SubscribeGlobal(IMessageManager system)
+        {
+            if (!_isGlobalSubscribe)
+            {
+                _isGlobalSubscribe = true;
+                foreach (var mediator in ToGlobalMessages)
+                    system.SubscribeMediator(mediator);
+
+                foreach (var mediator in ToGlobalRequests)
+                    system.SubscribeMediator(mediator);
             }
         }
 
@@ -143,6 +179,7 @@ namespace CMA
         public T1 SendRequest<T1>()
         {
             var request = new SimpleRequest<T1>();
+
             if (ContainsRequest(request))
                 return MessageManager.SendRequest<T1>(request);
 
@@ -164,61 +201,69 @@ namespace CMA
         {
             MessageManager.SubscribeMessage(new MessageHandler<T>(@delegate));
 
-            var mediator = new MessageMediator<T>(MessageManager);
-
-            if (Owner != null)
+            if (bindType != BindType.ToSelf)
             {
-                if (bindType == BindType.ToOwner)
-                    Owner.SubscribeMediator(mediator);
-                else if (Owner.System != null)
-                    Owner.System.SubscribeMediator(mediator);
-            }
+                var mediator = new MessageMediator<T>(MessageManager);
 
-            if (bindType == BindType.ToOwner)
-                ToOwnerMessages.Add(mediator);
-            else
-                ToGlobalMessages.Add(mediator);
+                if (Owner != null)
+                {
+                    if (bindType == BindType.ToOwner)
+                        Owner.SubscribeMediator(mediator);
+                    else if (Owner.System != null)
+                        Owner.System.SubscribeMediator(mediator);
+                }
+
+                if (bindType == BindType.ToOwner)
+                    ToOwnerMessages.Add(mediator);
+                else
+                    ToGlobalMessages.Add(mediator);
+            }
         }
 
         protected virtual void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate,
             BindType bindType = BindType.ToOwner)
         {
             MessageManager.SubscribeRequest(new RequestSimpleHandler<T>(@delegate));
-
-            var mediator = new SimpleRequestMediator<T>(MessageManager);
-
-            if (Owner != null)
+            if (bindType != BindType.ToSelf)
             {
-                if (bindType == BindType.ToOwner)
-                    Owner.SubscribeMediator(mediator);
-                else if (Owner.System != null)
-                    Owner.System.SubscribeMediator(mediator);
-            }
+                var mediator = new SimpleRequestMediator<T>(MessageManager);
 
-            if (bindType == BindType.ToOwner)
-                ToOwnerRequests.Add(mediator);
-            else
-                ToGlobalRequests.Add(mediator);
+                if (Owner != null)
+                {
+                    if (bindType == BindType.ToOwner)
+                        Owner.SubscribeMediator(mediator);
+                    else if (Owner.System != null)
+                        Owner.System.SubscribeMediator(mediator);
+                }
+
+                if (bindType == BindType.ToOwner)
+                    ToOwnerRequests.Add(mediator);
+                else
+                    ToGlobalRequests.Add(mediator);
+            }
         }
 
         protected virtual void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate,
             BindType bindType = BindType.ToOwner) where K : IRequest
         {
             MessageManager.SubscribeRequest(new RequestHandler<T, K>(@delegate));
-            var mediator = new RequestMediatorM<T, K>(MessageManager);
-
-            if (Owner != null)
+            if (bindType != BindType.ToSelf)
             {
-                if (bindType == BindType.ToOwner)
-                    Owner.SubscribeMediator(mediator);
-                else if (Owner.System != null)
-                    Owner.System.SubscribeMediator(mediator);
-            }
+                var mediator = new RequestMediatorM<T, K>(MessageManager);
 
-            if (bindType == BindType.ToOwner)
-                ToOwnerRequests.Add(mediator);
-            else
-                ToGlobalRequests.Add(mediator);
+                if (Owner != null)
+                {
+                    if (bindType == BindType.ToOwner)
+                        Owner.SubscribeMediator(mediator);
+                    else if (Owner.System != null)
+                        Owner.System.SubscribeMediator(mediator);
+                }
+
+                if (bindType == BindType.ToOwner)
+                    ToOwnerRequests.Add(mediator);
+                else
+                    ToGlobalRequests.Add(mediator);
+            }
         }
 
         protected virtual void Subscribe()

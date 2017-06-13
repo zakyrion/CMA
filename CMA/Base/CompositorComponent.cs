@@ -1,4 +1,18 @@
-﻿using System.Collections.Generic;
+﻿//   Copyright {CMA} {Kharsun Sergei}
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+
+//       http://www.apache.org/licenses/LICENSE-2.0
+
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using System.Collections.Generic;
 using CMA.Markers;
 using CMA.Messages;
 using CMA.Messages.Mediators;
@@ -13,6 +27,7 @@ namespace CMA
     {
         private bool _isGlobalSubscribe;
         private bool _isOwnerSubscribe;
+        private bool _isRoot;
 
         public CompositorComponent(K key)
         {
@@ -54,33 +69,51 @@ namespace CMA
             ToOwnerRequestMarkers = new List<IRequestMarkerHandler>();
 
             foreach (var component in obj.Components)
-                AddComponent((IComponent<T>) component.Clone());
+                AddComponent((IComponent<T>)component.Clone());
 
             Subscribe();
         }
 
         protected virtual IMarker Marker { get; set; }
 
-        public virtual bool IsRoot { get; protected set; }
+        public virtual bool IsRoot
+        {
+            get { return _isRoot; }
+            protected set
+            {
+                _isRoot = value;
+                if (value && !_isGlobalSubscribe)
+                {
+                    System = MessageManager;
+                    SubscribeGlobal();
+                }
+            }
+        }
+
         public List<IMessageMediator> ToGlobalMessages { get; protected set; }
         public List<IRequestMediator> ToGlobalRequests { get; protected set; }
         public List<IMessageMediator> ToOwnerMessages { get; protected set; }
         public List<IRequestMediator> ToOwnerRequests { get; protected set; }
         public List<IMessageMarkerHandler> ToOwnerMessageMarkers { get; protected set; }
         public List<IRequestMarkerHandler> ToOwnerRequestMarkers { get; protected set; }
+
+        public void ChangeKey(K newKey)
+        {
+            Key = newKey;
+        }
+
         public K Key { get; protected set; }
         public ICompositor<K> Owner { get; private set; }
 
         public virtual void OnAdd(ICompositor<K> owner)
         {
             Owner = owner;
-            System = owner.System;
+
+            if (!IsRoot)
+                System = owner.System;
 
             if (System != null)
-            {
-                foreach (var component in Components)
-                    component.SubscribeGlobal();
-            }
+                SubscribeGlobal();
 
             if (!_isOwnerSubscribe)
             {
@@ -126,16 +159,33 @@ namespace CMA
         public virtual void SubscribeGlobal()
         {
             foreach (var component in Components)
-                component.SubscribeGlobal();
+                component.SubscribeGlobal(System);
 
             if (!_isGlobalSubscribe)
             {
                 _isGlobalSubscribe = true;
                 foreach (var mediator in ToGlobalMessages)
-                    Owner.System.SubscribeMediator(mediator);
+                    System.SubscribeMediator(mediator);
 
                 foreach (var mediator in ToGlobalRequests)
-                    Owner.System.SubscribeMediator(mediator);
+                    System.SubscribeMediator(mediator);
+            }
+        }
+
+        public void SubscribeGlobal(IMessageManager system)
+        {
+            foreach (var component in Components)
+                component.SubscribeGlobal(system);
+
+            if (!_isGlobalSubscribe)
+            {
+                System = system;
+                _isGlobalSubscribe = true;
+                foreach (var mediator in ToGlobalMessages)
+                    system.SubscribeMediator(mediator);
+
+                foreach (var mediator in ToGlobalRequests)
+                    system.SubscribeMediator(mediator);
             }
         }
 
@@ -165,7 +215,7 @@ namespace CMA
             var result = default(T1);
             if (System.ContainsRequest<T1>() || System.ContainsRequest(request))
                 result = System.SendRequest<T1>(request);
-            if (ContainsRequest<T1>() || ContainsRequest(request))
+            else if (ContainsRequest<T1>() || ContainsRequest(request))
                 result = base.SendRequest<T1>(request);
             else if (Owner != null && !IsRoot)
                 result = Owner.SendRequest<T1>(request);
@@ -202,45 +252,61 @@ namespace CMA
 
         /// <summary>
         /// </summary>
-        /// <typeparam name="M">Type of marker</typeparam>
+        /// <typeparam name="M">TankType of marker</typeparam>
         /// <param name="delegate"></param>
-        protected virtual void AddMessageMarker<M>(MessageMarkerDelegate<IMessage, M> @delegate) where M : IMarker
+        protected virtual void AddMessageMarker<M>(MessageMarkerDelegate<IMessage, M> @delegate, BindType bindType = BindType.ToOwner) where M : IMarker
         {
-            ToOwnerMessageMarkers.Add(new MessageMarkerHandler<M>(@delegate));
+            if (bindType == BindType.ToOwner)
+                ToOwnerMessageMarkers.Add(new MessageMarkerHandler<M>(@delegate));
+            else if (bindType == BindType.ToSelf)
+                MessageManager.AddMessageMarker(new MessageMarkerHandler<M>(@delegate));
         }
 
         /// <summary>
         ///     Create Simple Marker without method
         /// </summary>
         /// <typeparam name="M"></typeparam>
-        protected virtual void AddMessageMarker<M>() where M : IMarker
+        protected virtual void AddMessageMarker<M>(BindType bindType = BindType.ToOwner) where M : IMarker
         {
-            ToOwnerMessageMarkers.Add(new MessageMarkerHandler<M>((message, marker) =>
+            var marker = new MessageMarkerHandler<M>((message, tempMarker) =>
             {
-                var component = GetComponent<IMessageRespounder>((T) marker.ObjKey);
+                var component = GetComponent<IMessageRespounder>((T)tempMarker.ObjKey);
 
                 if (component != null)
                     component.SendMessage(message);
-            }));
+            });
+
+            if (bindType == BindType.ToOwner)
+                ToOwnerMessageMarkers.Add(marker);
+            else if (bindType == BindType.ToSelf)
+                MessageManager.AddMessageMarker(marker);
         }
 
-        protected virtual void AddRequestMarker<T>(RequestMarkerDelegate<object, IRequest, T> @delegate)
+        protected virtual void AddRequestMarker<T>(RequestMarkerDelegate<object, IRequest, T> @delegate, BindType bindType = BindType.ToOwner)
             where T : IMarker
         {
-            ToOwnerRequestMarkers.Add(new RequestMarkerHandler<T>(@delegate));
+            if (bindType == BindType.ToOwner)
+                ToOwnerRequestMarkers.Add(new RequestMarkerHandler<T>(@delegate));
+            else if (bindType == BindType.ToSelf)
+                MessageManager.AddRequestMarker(new RequestMarkerHandler<T>(@delegate));
         }
 
         /// <summary>
         ///     Create Simple Marker without method
         /// </summary>
         /// <typeparam name="M"></typeparam>
-        protected virtual void AddRequestMarker<M>() where M : IMarker
+        protected virtual void AddRequestMarker<M>(BindType bindType = BindType.ToOwner) where M : IMarker
         {
-            ToOwnerRequestMarkers.Add(new RequestMarkerHandler<M>((request, marker) =>
+            var marker = new RequestMarkerHandler<M>((request, tempMarker) =>
             {
-                var component = GetComponent<IMessageRespounder>((T) marker.ObjKey);
+                var component = GetComponent<IMessageRespounder>((T)tempMarker.ObjKey);
                 return component != null ? component.SendRequest(request) : null;
-            }));
+            });
+
+            if (bindType == BindType.ToOwner)
+                ToOwnerRequestMarkers.Add(marker);
+            else if (bindType == BindType.ToSelf)
+                MessageManager.AddRequestMarker(marker);
         }
 
         protected virtual void Subscribe()

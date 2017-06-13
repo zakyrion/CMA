@@ -3,3 +3,4 @@ F:\projects\CMA\CMA\bin\Release\CMA.pdb
 F:\projects\CMA\CMA\obj\Release\CMA.csprojResolveAssemblyReference.cache
 F:\projects\CMA\CMA\obj\Release\CMA.dll
 F:\projects\CMA\CMA\obj\Release\CMA.pdb
+F:\projects\CMA\CMA\bin\Release\UnityEngine.dll

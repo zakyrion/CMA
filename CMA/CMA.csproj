@@ -39,6 +39,9 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>lib\UnityEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Base\ActorSystem.cs" />
@@ -51,6 +54,9 @@
     <Compile Include="Base\CompositorComponent.cs" />
     <Compile Include="Base\Builder\IBuildManager.cs" />
     <Compile Include="Base\Core\Core.cs" />
+    <Compile Include="Base\Core\IUpdated.cs" />
+    <Compile Include="Base\Core\IUpdateService.cs" />
+    <Compile Include="Base\Core\UpdateService.cs" />
     <Compile Include="Base\IComponent.cs" />
     <Compile Include="Base\ICompositor.cs" />
     <Compile Include="Base\Markers\IMarker.cs" />
@@ -84,9 +90,12 @@
     <Compile Include="Base\Messages\SimpleRequest.cs" />
     <Compile Include="Base\Messages\ThreadMessageManager.cs" />
     <Compile Include="Base\Messages\ThreadPoolMessageManager.cs" />
+    <Compile Include="Base\Messages\UpdatedMessageManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="CMA.licenseheader" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
