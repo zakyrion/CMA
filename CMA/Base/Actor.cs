@@ -265,10 +265,16 @@ namespace CMA
                 message.AddTrace(GetType().ToString());
 
                 if (Marker != null)
+                {
                     message.AddMarkerForReturn(Marker);
+                    return;
+                }
 
                 if (ContainsMessage(message))
+                {
                     Manager.SendMessage(message);
+                    return;
+                }
 
                 foreach (var child in Childs)
                     if (child.ContainsMessage(message))
