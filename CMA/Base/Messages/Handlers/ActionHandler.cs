@@ -11,17 +11,30 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-using System.Threading;
+
+using System;
+using UnityEngine;
 
 namespace CMA.Messages
 {
-    public interface IRequest : ICommunication
+    public class ActionHandler<T> : IActionHandler
     {
-        object Result { get; }
-        string ResultKey { get; }
-        RequestKey? RequestKey { get; }
-        ManualResetEvent Sync { get; set; }
-        void Done(object result);
-        int ThreadId { get; }
+        private readonly Action<T> _action;
+
+        public ActionHandler(Action<T> action)
+        {
+            _action = action;
+        }
+
+        public void Invoke(IMessageManager manager, object obj)
+        {
+            if (obj == null)
+            {
+                Debug.Log("Obj Null");
+            }
+
+            if (_action != null)
+                manager.InvokeAtManager(() => _action((T) obj));
+        }
     }
 }

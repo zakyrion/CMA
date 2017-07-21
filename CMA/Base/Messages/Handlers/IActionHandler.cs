@@ -11,25 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-using CMA.Messages;
 
-namespace CMA
+namespace CMA.Messages
 {
-    public abstract class ActorSystem<T> : Compositor<T>
+    public interface IActionHandler
     {
-        protected ActorSystem()
-        {
-            System = MessageManager;
-        }
-
-        protected ActorSystem(IMessageManager messageManager) : base(messageManager)
-        {
-            System = MessageManager;
-        }
-
-        public override void SendMessage(IMessage message)
-        {
-            MessageManager.SendMessage(message);
-        }
+        void Invoke(IMessageManager manager, object obj);
     }
 }

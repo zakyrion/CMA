@@ -11,15 +11,22 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
+using System;
 using System.Threading;
 
 namespace CMA.Messages
 {
-    public class ThreadPoolMessageManager: MessageManager
+    public class ThreadPoolMessageManager : MessageManager
     {
         public override IMessageManager NewWithType()
         {
             return new ThreadPoolMessageManager();
+        }
+
+        public override void InvokeAtManager(Action action)
+        {
+            ThreadPool.QueueUserWorkItem(state => { base.InvokeAtManager(action); });
         }
 
         public override void SendMessage(IMessage message)

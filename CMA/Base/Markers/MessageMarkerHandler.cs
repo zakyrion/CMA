@@ -32,7 +32,10 @@ namespace CMA.Markers
 
         public void Invoke(IMessage message)
         {
-            DelegateField.Invoke(message, message.GetMarker<T>());
+            message.LockMessage();
+            var marker = message.GetMarker<T>();
+            DelegateField.Invoke(message, marker);
+            message.UnlockMessage();
         }
 
         public string Key

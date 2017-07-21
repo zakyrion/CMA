@@ -11,11 +11,15 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 namespace CMA.Markers
 {
     public interface IMarker
     {
         object ObjKey { get; }
         string MarkerKey { get; }
+        string ObjKeyType { get; }
+        bool IsCheck { get; }
+        void Check();
     }
 }

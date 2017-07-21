@@ -11,25 +11,119 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
+using System;
+using System.Threading;
+using UnityEngine;
+
 namespace CMA.Messages
 {
     public abstract class Message : Communication, IMessage
     {
-        public abstract void Initialize(object obj);
+        protected readonly IActionHandler Action;
+        protected object Lock = new object();
+
+        protected Message(IActionHandler action)
+        {
+            Action = action;
+        }
+
+        public virtual bool IsDone { get; protected set; }
+        public IMessageManager MessageManager { get; set; }
+
+        public virtual void Done(object param = null)
+        {
+        }
+
+        public virtual string GetKey()
+        {
+            return GetType().ToString();
+        }
+
+        public virtual void LockMessage()
+        {
+        }
+
+        public virtual void UnlockMessage()
+        {
+        }
+
+        public void ShowTrace()
+        {
+            Debug.Log("Message: " + GetKey());
+            foreach (var trace in Traces)
+            {
+                Debug.Log("Trace: " + trace);
+            }
+        }
+
+        public virtual void InvokeChainAction(object param)
+        {
+            if (Action != null)
+                Action.Invoke(MessageManager, param);
+        }
     }
 
     public class Message<T> : Message
     {
-        public T Data { get; protected set; }
-
-        public Message(T data)
+        public Message(T data) : base(null)
         {
             Data = data;
         }
 
-        public override void Initialize(object obj)
+        public T Data { get; protected set; }
+    }
+
+    public class SingletonMessage : Message
+    {
+        private int? _threadId;
+        protected AutoResetEvent Event = new AutoResetEvent(true);
+
+        public SingletonMessage(IActionHandler action) : base(action)
         {
-            Data = (T) obj;
+        }
+
+        public override bool IsDone
+        {
+            get
+            {
+                lock (Lock)
+                {
+                    return base.IsDone;
+                }
+            }
+            protected set
+            {
+                lock (Lock)
+                {
+                    base.IsDone = value;
+                }
+            }
+        }
+
+        public override void Done(object param = null)
+        {
+            IsDone = true;
+        }
+
+        public override void LockMessage()
+        {
+            if (_threadId.HasValue)
+            {
+                if (_threadId.Value == Thread.CurrentThread.ManagedThreadId)
+                    return;
+            }
+            else
+            {
+                _threadId = Thread.CurrentThread.ManagedThreadId;
+            }
+
+            Event.WaitOne();
+        }
+
+        public override void UnlockMessage()
+        {
+            Event.Set();
         }
     }
 }

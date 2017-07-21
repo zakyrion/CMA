@@ -22,14 +22,15 @@ namespace CMA.Messages
         bool IsFaild { get; }
         List<IMarker> Markers { get; }
         List<IMarker> ReturningMarkers { get; }
-        bool IsContainsManagerId(int id);
+        bool IsAllMarkersCheck();
+        bool IsContainsActorId(long id);
         void AddMarkerForReturn(IMarker marker);
         void AddMarker(IMarker marker);
         T GetMarker<T>() where T : IMarker;
         T GetReturningMarker<T>() where T : IMarker;
         bool Contains<T>();
         void AddMarkers(IEnumerable<IMarker> markers);
-        void AddManagerId(int id);
+        void AddActorId(long id);
         void Fail();
         void AddTrace(string trace);
         List<string> Trace();

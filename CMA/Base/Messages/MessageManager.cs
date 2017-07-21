@@ -11,12 +11,12 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CMA.Markers;
-using CMA.Messages.Mediators;
 using UnityEngine;
 
 namespace CMA.Messages
@@ -26,28 +26,11 @@ namespace CMA.Messages
         private static int _nextId = int.MinValue;
         protected readonly object Lock = new object();
 
-        protected Dictionary<string, List<IMessageMarkerHandler>> MarkerMessageRecievers =
+        protected Dictionary<string, List<IMessageMarkerHandler>> MessageMarker =
             new Dictionary<string, List<IMessageMarkerHandler>>();
-
-        protected Dictionary<string, IRequestMarkerHandler> MarkerRequestRecievers =
-            new Dictionary<string, IRequestMarkerHandler>();
-
-        protected Dictionary<string, List<IMessageMediator>> MessageMediators =
-            new Dictionary<string, List<IMessageMediator>>();
 
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
-
-        protected Dictionary<RequestKey, IRequestMediator> RequestMediators =
-            new Dictionary<RequestKey, IRequestMediator>();
-
-        protected Dictionary<RequestKey, IRequestHandler> RequestRecievers =
-            new Dictionary<RequestKey, IRequestHandler>();
-
-        protected Dictionary<string, IRequestMediator> SimpleRequestMediators =
-            new Dictionary<string, IRequestMediator>();
-
-        protected Dictionary<string, IRequestHandler> SimpleRequestRecievers = new Dictionary<string, IRequestHandler>();
 
         public MessageManager()
         {
@@ -64,54 +47,18 @@ namespace CMA.Messages
         public int Id { get; protected set; }
         public string TraceMarker { protected get; set; }
 
-        public void AddRequestMarker(IRequestMarkerHandler handler)
+        public void AddMarker(IMessageMarkerHandler handler)
         {
-            lock (Lock)
-            {
-                var key = handler.Key;
-                MarkerRequestRecievers[key] = handler;
-            }
+            if (!MessageMarker.ContainsKey(handler.Key))
+                MessageMarker.Add(handler.Key, new List<IMessageMarkerHandler> { handler });
+            else
+                MessageMarker[handler.Key].Add(handler);
         }
 
-        public void RemoveRequestMarker(IRequestMarkerHandler handler)
+        public void RemoveMarker(IMessageMarkerHandler handler)
         {
-            lock (Lock)
-            {
-                var key = handler.Key;
-
-                if (MarkerRequestRecievers.ContainsKey(key) && MarkerRequestRecievers[key].Equals(handler))
-                    MarkerRequestRecievers.Remove(key);
-            }
-        }
-
-        public void AddMessageMarker(IMessageMarkerHandler handler)
-        {
-            lock (Lock)
-            {
-                var key = handler.Key;
-
-                if (!MarkerMessageRecievers.ContainsKey(key))
-                    MarkerMessageRecievers.Add(key, new List<IMessageMarkerHandler>());
-
-                MarkerMessageRecievers[key].Add(handler);
-            }
-        }
-
-        public void RemoveMessageMarker(IMessageMarkerHandler handler)
-        {
-            lock (Lock)
-            {
-                var key = handler.Key;
-
-                if (MarkerMessageRecievers.ContainsKey(key))
-                {
-                    var handlers =
-                        MarkerMessageRecievers[key].Where(messageHandler => messageHandler.Equals(handler)).ToList();
-
-                    foreach (var messageHandler in handlers)
-                        MarkerMessageRecievers[key].Remove(messageHandler);
-                }
-            }
+            if (MessageMarker.ContainsKey(handler.Key))
+                MessageMarker[handler.Key].Remove(handler);
         }
 
         public virtual IMessageManager NewWithType()
@@ -125,15 +72,20 @@ namespace CMA.Messages
             {
                 try
                 {
-                    if (message.IsContainsManagerId(Id))
-                    {
-                        message.Fail();
-                        return;
-                    }
                     var isDone = false;
-                    message.AddManagerId(Id);
                     message.AddTrace(TraceMarker);
-                    var key = message.GetType().Name;
+                    var key = message.GetKey();
+
+                    if (!message.IsAllMarkersCheck())
+                    {
+                        foreach (var marker in message.Markers)
+                            if (MessageMarker.ContainsKey(marker.MarkerKey))
+                            {
+                                foreach (var handler in MessageMarker[marker.MarkerKey])
+                                    handler.Invoke(message);
+                                return;
+                            }
+                    }
 
                     if (MessageRecievers.ContainsKey(key))
                     {
@@ -143,32 +95,14 @@ namespace CMA.Messages
                         isDone = true;
                     }
 
-                    if (MessageMediators.ContainsKey(key))
-                    {
-                        foreach (var messageMediator in MessageMediators[key])
-                            messageMediator.TransmitMessage(message);
-
-                        isDone = true;
-                    }
-
-                    foreach (var marker in message.Markers)
-                        if (MarkerMessageRecievers.ContainsKey(marker.MarkerKey))
-                        {
-                            foreach (var handler in MarkerMessageRecievers[marker.MarkerKey])
-                                handler.Invoke(message);
-
-                            isDone = true;
-                        }
-
                     if (!isDone)
                         message.Fail();
                 }
                 catch (Exception exception)
                 {
-                    var traces = message.Trace();
-                    foreach (var trace in traces)
-                        Debug.Log(trace);
-                    Debug.Log("Message Exception: " + exception);
+                    message.ShowTrace();
+                    Debug.Log(string.Format("Exception:{0} ", exception));
+
                     message.Fail();
                 }
             }
@@ -178,8 +112,8 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                var key = typeof(T).Name;
-                return MessageRecievers.ContainsKey(key) || MessageMediators.ContainsKey(key);
+                var key = typeof(T).ToString();
+                return MessageRecievers.ContainsKey(key) || MessageMarker.ContainsKey(key);
             }
         }
 
@@ -187,23 +121,10 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                var key = message.GetType().Name;
-                return MessageRecievers.ContainsKey(key) ||
-                       message.Markers.Any(marker => MarkerMessageRecievers.ContainsKey(marker.MarkerKey)) ||
-                       MessageMediators.ContainsKey(key);
-            }
-        }
-
-        public void SubscribeMessage(IMessageHandler handler)
-        {
-            lock (Lock)
-            {
-                var key = handler.Key;
-
-                if (!MessageRecievers.ContainsKey(key))
-                    MessageRecievers.Add(key, new List<IMessageHandler>());
-
-                MessageRecievers[key].Add(handler);
+                var key = message.GetKey();
+                return (MessageRecievers.ContainsKey(key) && message.IsAllMarkersCheck()) ||
+                       message.Markers.Any(marker => MessageMarker.ContainsKey(marker.MarkerKey)) ||
+                       MessageMarker.ContainsKey(key);
             }
         }
 
@@ -211,7 +132,7 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                var key = typeof(T).Name;
+                var key = typeof(T).ToString();
 
                 if (!MessageRecievers.ContainsKey(key))
                     MessageRecievers.Add(key, new List<IMessageHandler>());
@@ -220,45 +141,16 @@ namespace CMA.Messages
             }
         }
 
-        public virtual void SubscribeMessage<K, T>(MessageDelegate<T> @delegate) where K : IMessage
-            where T : IMessage
+        public void SubscribeMessage<T>(MessageDelegate<IMessage> @delegate)
         {
             lock (Lock)
             {
-                var key = typeof(K).Name;
+                var key = typeof(T).ToString();
 
                 if (!MessageRecievers.ContainsKey(key))
                     MessageRecievers.Add(key, new List<IMessageHandler>());
 
-                MessageRecievers[key].Add(new MessageHandler<T>(@delegate));
-            }
-        }
-
-        public void RemoveMessageReciever(IMessageHandler handler)
-        {
-            lock (Lock)
-            {
-                var key = handler.Key;
-
-                if (MessageRecievers.ContainsKey(key))
-                {
-                    var handlers =
-                        MessageRecievers[key].Where(messageHandler => messageHandler.Equals(handler)).ToList();
-
-                    foreach (var messageHandler in handlers)
-                        MessageRecievers[key].Remove(messageHandler);
-                }
-            }
-        }
-
-        public virtual void RemoveMessageReciever<T>() where T : IMessage
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-
-                if (MessageRecievers.ContainsKey(key))
-                    MessageRecievers.Remove(key);
+                MessageRecievers[key].Add(new MessageHandler<IMessage>(@delegate));
             }
         }
 
@@ -266,93 +158,10 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                var key = typeof(T).Name;
+                var key = typeof(T).ToString();
 
                 if (MessageRecievers.ContainsKey(key))
                     MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
-            }
-        }
-
-        public virtual void RemoveMessageReciever<K, T>(MessageDelegate<T> @delegate) where K : IMessage
-            where T : IMessage
-        {
-            lock (Lock)
-            {
-                var key = typeof(K).Name;
-
-                if (MessageRecievers.ContainsKey(key))
-                    MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
-            }
-        }
-
-        public virtual object SendRequest(IRequest request)
-        {
-            lock (Lock)
-            {
-                TransmitRequest(request);
-                return request.Result;
-            }
-        }
-
-        protected virtual void TransmitRequest(IRequest request)
-        {
-            lock (Lock)
-            {
-                try
-                {
-                    if (request.IsContainsManagerId(Id))
-                    {
-                        request.Fail();
-                        return;
-                    }
-
-                    request.AddManagerId(Id);
-                    request.AddTrace(TraceMarker);
-
-                    foreach (var marker in request.Markers)
-                        if (MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
-                        {
-                            MarkerRequestRecievers[marker.MarkerKey].Invoke(request);
-                            return;
-                        }
-
-                    if (request.RequestKey != null)
-                    {
-                        if (RequestMediators.ContainsKey(request.RequestKey.Value))
-                        {
-                            RequestMediators[request.RequestKey.Value].TransmitRequest(request);
-                            return;
-                        }
-
-                        if (RequestRecievers.ContainsKey(request.RequestKey.Value))
-                        {
-                            RequestRecievers[request.RequestKey.Value].Invoke(request);
-                            return;
-                        }
-                    }
-
-                    if (SimpleRequestMediators.ContainsKey(request.ResultKey))
-                    {
-                        SimpleRequestMediators[request.ResultKey].TransmitRequest(request);
-                        return;
-                    }
-
-                    if (SimpleRequestRecievers.ContainsKey(request.ResultKey))
-                    {
-                        SimpleRequestRecievers[request.ResultKey].Invoke(request);
-                        return;
-                    }
-
-                    request.Fail();
-                }
-                catch (Exception exception)
-                {
-                    var traces = request.Trace();
-                    foreach (var trace in traces)
-                        Debug.Log(trace);
-                    Debug.Log("Request Exception: " + exception);
-                    request.Fail();
-                }
             }
         }
 
@@ -360,166 +169,11 @@ namespace CMA.Messages
 
         #region Requests
 
-        public virtual T SendRequest<T>(IRequest request)
+        public virtual void InvokeAtManager(Action action)
         {
             lock (Lock)
             {
-                SendRequest(request);
-                return (T)request.Result;
-            }
-        }
-
-        public virtual T SendRequest<T>()
-        {
-            lock (Lock)
-            {
-                return SendRequest<T>(new SimpleRequest<T>());
-            }
-        }
-
-        public bool ContainsRequest<T>()
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-                return SimpleRequestRecievers.ContainsKey(key) || SimpleRequestMediators.ContainsKey(key);
-            }
-        }
-
-        public bool ContainsRequest(IRequest request)
-        {
-            lock (Lock)
-            {
-                return request.Markers.Any(marker => MarkerRequestRecievers.ContainsKey(marker.MarkerKey))
-                       ||
-                       (request.RequestKey != null &&
-                        (RequestRecievers.ContainsKey(request.RequestKey.Value) ||
-                         RequestMediators.ContainsKey(request.RequestKey.Value))) ||
-                       SimpleRequestRecievers.ContainsKey(request.ResultKey) ||
-                       SimpleRequestMediators.ContainsKey(request.ResultKey);
-            }
-        }
-
-        public void SubscribeRequest(IRequestHandler handler)
-        {
-            lock (Lock)
-            {
-                if (handler.MessageKey != null)
-                {
-                    var requestKey = new RequestKey(handler.Key, handler.MessageKey);
-                    RequestRecievers[requestKey] = handler;
-                }
-                else
-                {
-                    var key = handler.Key;
-                    SimpleRequestRecievers[key] = handler;
-                }
-            }
-        }
-
-        public virtual void SubscribeRequest<T>(RequestSimpleDelegate<T> @delegate)
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-                SimpleRequestRecievers[key] = new RequestSimpleHandler<T>(@delegate);
-            }
-        }
-
-        public virtual void SubscribeRequest<T, K>(RequestDelegate<T, K> @delegate) where K : IRequest
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-                var messageKey = typeof(K).Name;
-                var requestKey = new RequestKey(key, messageKey);
-                RequestRecievers[requestKey] = new RequestHandler<T, K>(@delegate);
-            }
-        }
-
-        public virtual void RemoveRequestReciever(IRequestHandler handler)
-        {
-            lock (Lock)
-            {
-                var key = handler.Key;
-                var messageKey = handler.MessageKey;
-                var requsetKey = new RequestKey(key, messageKey);
-
-                if (messageKey == null && SimpleRequestRecievers.ContainsKey(key))
-                    SimpleRequestRecievers.Remove(key);
-                else if (messageKey != null && RequestRecievers.ContainsKey(requsetKey) &&
-                         RequestRecievers[requsetKey].Equals(handler))
-                    RequestRecievers.Remove(requsetKey);
-            }
-        }
-
-        public virtual void RemoveRequestReciever<T>(RequestSimpleDelegate<T> @delegate)
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-                if (SimpleRequestRecievers.ContainsKey(key))
-                    SimpleRequestRecievers.Remove(key);
-            }
-        }
-
-        public virtual void RemoveRequestReciever<T, K>(RequestDelegate<T, K> @delegate)
-            where K : IRequest
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).Name;
-                var messageKey = typeof(T).Name;
-
-                var requsetKey = new RequestKey(key, messageKey);
-                if (RequestRecievers.ContainsKey(requsetKey))
-                    RequestRecievers.Remove(requsetKey);
-            }
-        }
-
-        public void SubscribeMediator(IMessageMediator mediator)
-        {
-            lock (Lock)
-            {
-                var key = mediator.Key;
-
-                if (!MessageMediators.ContainsKey(key))
-                    MessageMediators.Add(key, new List<IMessageMediator>());
-
-                MessageMediators[key].Add(mediator);
-            }
-        }
-
-        public void SubscribeMediator(IRequestMediator mediator)
-        {
-            lock (Lock)
-            {
-                if (mediator.RequestKey == null)
-                    SimpleRequestMediators[mediator.ResultKey] = mediator;
-                else
-                    RequestMediators[mediator.RequestKey.Value] = mediator;
-            }
-        }
-
-        public void RemoveMediator(IRequestMediator mediator)
-        {
-            lock (Lock)
-            {
-                if (mediator.RequestKey == null)
-                    SimpleRequestMediators.Remove(mediator.ResultKey);
-                else
-                    RequestMediators.Remove(mediator.RequestKey.Value);
-            }
-        }
-
-        public void RemoveMediator(IMessageMediator mediator)
-        {
-            lock (Lock)
-            {
-                var key = mediator.Key;
-
-                if (MessageMediators.ContainsKey(key))
-                    MessageMediators[key].Remove(mediator);
+                action();
             }
         }
 
@@ -527,15 +181,8 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                MessageMediators.Clear();
+                MessageMarker.Clear();
                 MessageRecievers.Clear();
-                MarkerMessageRecievers.Clear();
-
-                RequestMediators.Clear();
-                RequestRecievers.Clear();
-                SimpleRequestMediators.Clear();
-                SimpleRequestRecievers.Clear();
-                MarkerRequestRecievers.Clear();
             }
         }
 

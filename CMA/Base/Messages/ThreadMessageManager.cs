@@ -11,15 +11,19 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
+using System;
 using System.Collections.Generic;
 using System.Threading;
+using UnityEngine;
 
 namespace CMA.Messages
 {
     public class ThreadMessageManager : MessageManager
     {
-        protected Queue<IMessage> Messages = new Queue<IMessage>();
-        protected Queue<IRequest> Requests = new Queue<IRequest>();
+        private readonly AutoResetEvent _event = new AutoResetEvent(false);
+
+        protected Queue<Action> Actions = new Queue<Action>();
         protected Thread Thread;
 
         public ThreadMessageManager()
@@ -33,86 +37,51 @@ namespace CMA.Messages
             return new ThreadMessageManager();
         }
 
+        public override void InvokeAtManager(Action action)
+        {
+            lock (Lock)
+            {
+                Actions.Enqueue(action);
+                _event.Set();
+            }
+        }
+
         public override void SendMessage(IMessage message)
         {
             lock (Lock)
             {
-                Messages.Enqueue(message);
-                Monitor.Pulse(Lock);
+                Actions.Enqueue(() => { base.SendMessage(message); });
+                _event.Set();
             }
         }
 
-        protected override void TransmitRequest(IRequest request)
-        {
-            if (request.ThreadId == Thread.ManagedThreadId)
-                base.TransmitRequest(request);
-            else
-            {
-                bool isNeedToWait = false;
-
-                lock (Lock)
-                {
-                    if (request.Sync == null)
-                    {
-                        isNeedToWait = true;
-                        request.Sync = new ManualResetEvent(false);
-                    }
-
-                    Requests.Enqueue(request);
-                    Monitor.Pulse(Lock);
-                }
-
-                if (isNeedToWait)
-                    request.Sync.WaitOne();
-            }
-        }
-
-        protected void Update()
+        protected virtual void Update()
         {
             while (true)
             {
-                IMessage[] messages = null;
-                IRequest[] requests = null;
+                Action[] actions = null;
 
-                lock (Lock)
+                do
                 {
-                    do
+                    if (Actions.Count > 0)
                     {
-                        if (Messages.Count > 0)
-                        {
-                            messages = Messages.ToArray();
-                            Messages.Clear();
-                        }
-                        else if (Requests.Count > 0)
-                        {
-                            requests = Requests.ToArray();
-                            Requests.Clear();
-                        }
-                        else
-                        {
-                            Monitor.Pulse(Lock);
-                            Monitor.Wait(Lock);
-                        }
+                        actions = Actions.ToArray();
+                        Actions.Clear();
+                    }
 
-                    } while (messages == null && requests == null);
-                }
+                    if (Actions == null)
+                        _event.WaitOne();
+                } while (Actions == null);
 
-                if (requests != null)
-                {
-                    foreach (var request in requests)
-                        base.TransmitRequest(request);
-                }
-
-                if (messages != null)
-                {
-                    foreach (var message in messages)
-                        base.SendMessage(message);
-                }
+                if (actions != null)
+                    foreach (var action in actions)
+                        action();
             }
         }
 
         public override void Quit()
         {
+            Debug.Log("Quit Manager");
             Thread.Abort();
             base.Quit();
         }

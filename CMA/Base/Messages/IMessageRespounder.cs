@@ -11,6 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
+
 namespace CMA.Messages
 {
     public interface IMessageRespounder
@@ -18,11 +20,5 @@ namespace CMA.Messages
         void SendMessage(IMessage message);
         bool ContainsMessage<T>() where T : IMessage;
         bool ContainsMessage(IMessage message);
-
-        object SendRequest(IRequest request);
-        T SendRequest<T>(IRequest request);
-        T SendRequest<T>();
-        bool ContainsRequest<T>();
-        bool ContainsRequest(IRequest request);
     }
 }

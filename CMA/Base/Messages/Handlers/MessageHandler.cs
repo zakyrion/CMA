@@ -11,6 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 using System;
 
 namespace CMA.Messages
@@ -26,7 +27,7 @@ namespace CMA.Messages
 
         public string Key
         {
-            get { return typeof (T).Name; }
+            get { return typeof(T).ToString(); }
         }
 
         public Delegate Delegate
@@ -46,7 +47,13 @@ namespace CMA.Messages
 
         public void Invoke(IMessage message)
         {
-            DelegateField((T) message);
+            if (!message.IsDone)
+            {
+                message.LockMessage();
+                DelegateField((T) message);
+                //message.Done();
+                message.UnlockMessage();
+            }
         }
     }
 }

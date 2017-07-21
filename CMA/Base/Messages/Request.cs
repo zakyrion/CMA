@@ -11,50 +11,68 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-using System.Threading;
+
+using System;
 
 namespace CMA.Messages
 {
     /// <summary>
-    /// 
     /// </summary>
     /// <typeparam name="R">Result type</typeparam>
-    public abstract class Request<R> : Communication, IRequest
+    public abstract class Request : SingletonMessage
     {
-        protected Request()
+        protected Request(IActionHandler action) : base(action)
         {
-            ResultKey = typeof(R).Name;
-            RequestKey = new RequestKey(ResultKey, GetType().Name);
-            Result = default(R);
-            ThreadId = Thread.CurrentThread.ManagedThreadId;
         }
 
-        public R CastResult
+        public override void Done(object result = null)
         {
-            get { return (R)Result; }
+            if (result != null && !IsDone)
+            {
+                base.Done();
+                InvokeChainAction(result);
+            }
+        }
+    }
+
+    public abstract class Request<R> : Request
+    {
+        protected Request(IActionHandler action, R data) : base(action)
+        {
+            Data = data;
         }
 
-        public void Done(object result)
-        {
-            Result = result;
+        public R Data { get; protected set; }
+    }
 
-            if (Sync != null)
-                Sync.Set();
+    public class SimpleRequest<R> : Request
+    {
+        public SimpleRequest(Action<R> action) : base(new ActionHandler<R>(action))
+        {
         }
 
-        public int ThreadId { get; protected set; }
-
-        public override void Fail()
+        public override string GetKey()
         {
-            base.Fail();
+            return typeof(R).ToString();
+        }
+    }
 
-            if (Sync != null)
-                Sync.Set();
+    /// <summary>
+    /// </summary>
+    /// <typeparam name="R">Result type</typeparam>
+    /// <typeparam name="T">Data param</typeparam>
+    public abstract class Request<R, T> : Request
+    {
+        protected Request(IActionHandler action, T data) : base(action)
+        {
+            Data = data;
         }
 
-        public object Result { get; protected set; }
-        public string ResultKey { get; protected set; }
-        public RequestKey? RequestKey { get; protected set; }
-        public ManualResetEvent Sync { get; set; }
+        public T Data { get; protected set; }
+
+        public override string GetKey()
+        {
+            return typeof(R).ToString();
+        }
     }
 }

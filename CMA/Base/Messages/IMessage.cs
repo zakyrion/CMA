@@ -11,13 +11,17 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-using System;
 
 namespace CMA.Messages
 {
     public interface IMessage : ICommunication
     {
-        Type GetType();
-        void Initialize(object obj);
+        bool IsDone { get; }
+        IMessageManager MessageManager { get; set; }
+        void Done(object param = null);
+        string GetKey();
+        void LockMessage();
+        void UnlockMessage();
+        void ShowTrace();
     }
 }

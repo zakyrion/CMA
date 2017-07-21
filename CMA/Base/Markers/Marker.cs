@@ -11,6 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 namespace CMA.Markers
 {
     /// <summary>
@@ -24,15 +25,28 @@ namespace CMA.Markers
         protected Marker(T key)
         {
             Key = key;
+            ObjKeyType = typeof(T).ToString();
         }
 
         public virtual T Key { get; protected set; }
 
-        public object ObjKey { get { return Key; } }
+        public object ObjKey
+        {
+            get { return Key; }
+        }
 
         public virtual string MarkerKey
         {
-            get { return GetType().Name; }
+            get { return GetType().ToString(); }
+        }
+
+        public string ObjKeyType { get; protected set; }
+
+        public bool IsCheck { get; protected set; }
+
+        public void Check()
+        {
+            IsCheck = true;
         }
     }
 }

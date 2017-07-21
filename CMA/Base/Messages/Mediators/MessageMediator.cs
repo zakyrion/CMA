@@ -19,7 +19,7 @@ namespace CMA.Messages.Mediators
 
         public MessageMediator(IMessageManager owner)
         {
-            Key = typeof (T).Name;
+            Key = typeof (T).ToString();
             Owner = owner;
         }
 

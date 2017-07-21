@@ -11,7 +11,9 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 using System.Collections.Generic;
+using System.Linq;
 using CMA.Markers;
 
 namespace CMA.Messages
@@ -20,7 +22,7 @@ namespace CMA.Messages
     {
         protected Dictionary<string, IMarker> Cache = new Dictionary<string, IMarker>();
         protected Dictionary<string, IMarker> CacheReturningMarkers = new Dictionary<string, IMarker>();
-        protected HashSet<int> Ids = new HashSet<int>();
+        protected HashSet<long> Ids = new HashSet<long>();
         protected List<string> Traces = new List<string>();
 
         protected Communication()
@@ -29,7 +31,12 @@ namespace CMA.Messages
             ReturningMarkers = new List<IMarker>();
         }
 
-        public bool IsContainsManagerId(int id)
+        public bool IsAllMarkersCheck()
+        {
+            return Markers.All(marker => marker.IsCheck);
+        }
+
+        public bool IsContainsActorId(long id)
         {
             return Ids.Contains(id);
         }
@@ -40,19 +47,19 @@ namespace CMA.Messages
 
         public T GetMarker<T>() where T : IMarker
         {
-            var key = typeof (T).Name;
+            var key = typeof(T).ToString();
             return (T) Cache[key];
         }
 
         public T GetReturningMarker<T>() where T : IMarker
         {
-            var key = typeof (T).Name;
+            var key = typeof(T).ToString();
             return (T) CacheReturningMarkers[key];
         }
 
         public bool Contains<T>()
         {
-            var key = typeof (T).Name;
+            var key = typeof(T).ToString();
             return Cache.ContainsKey(key);
         }
 
@@ -74,7 +81,7 @@ namespace CMA.Messages
                 AddMarker(marker);
         }
 
-        public void AddManagerId(int id)
+        public void AddActorId(long id)
         {
             Ids.Add(id);
         }
