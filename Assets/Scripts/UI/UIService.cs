@@ -1,18 +1,25 @@
-﻿using CMA.Messages;
-using Model;
+﻿using Model;
+using UnityAkkaExtension;
+using UnityAkkaExtension.Messages;
 using UnityEngine;
+using View;
 
-public class UIService : MonoBehaviour
+public class UIService : MonoActor
 {
     private Dificult _dificult;
     [SerializeField] private GameObject _dificultPanel;
-
     [SerializeField] private GameObject _gameOver;
 
-    private void Awake()
+    protected override void Awake()
     {
-        Main.Instance.SubscribeMessage<ShowDificultUI>(OnShowDificultUI);
-        Main.Instance.SubscribeMessage<ShowGameOver>(OnShowGameOverUI);
+        base.Awake();
+        StarGameManager.Context.ActorSelection(StarGameManager.Path + "*").Tell(this);
+    }
+
+    protected override void Subscribe()
+    {
+        Receive<ShowDificultUI>(OnShowDificultUI);
+        Receive<ShowGameOver>(OnShowGameOverUI);
     }
 
     private void OnShowGameOverUI(ShowGameOver message)
@@ -31,26 +38,20 @@ public class UIService : MonoBehaviour
     {
         _dificult = (Dificult) dificult;
         _dificultPanel.SetActive(false);
-        Main.Instance.SendMessage(new AsteroidManager.StartWithDificult(_dificult));
+        ActorRef.Tell(new AsteroidManager.StartWithDificult(_dificult), null);
     }
 
     public void Restart()
     {
         _gameOver.SetActive(false);
-        Main.Instance.SendMessage(new AsteroidManager.StartWithDificult(_dificult));
+        ActorRef.Tell(new AsteroidManager.StartWithDificult(_dificult), null);
     }
 
     public class ShowDificultUI : Message
     {
-        public ShowDificultUI() : base(null)
-        {
-        }
     }
 
     public class ShowGameOver : Message
     {
-        public ShowGameOver() : base(null)
-        {
-        }
     }
 }

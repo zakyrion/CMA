@@ -1,81 +1,51 @@
-﻿using CMA;
-using CMA.Core;
-using CMA.Messages;
+﻿using Akka.Actor;
 using Model;
+using UnityAkkaExtension.Messages;
 using UnityEngine;
-using Bullet = View.Bullet;
 
-public class BulletManager : Actor<string>
+public class BulletManager : ReceiveActor
 {
     private bool _isStart;
 
-    public BulletManager() : base("BulletManager")
+    public BulletManager()
     {
+        Receive<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
+        Receive<Main.GameOver>(OnGameOver);
+        Receive<CreateBullet>(OnCreateBullet);
     }
 
-    public BulletManager(string key, IMessageManager manager) : base(key, manager)
-    {
-    }
-
-    protected override void Subscribe()
-    {
-        SubscribeMessage<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
-        SubscribeMessage<Main.GameOver>(OnGameOver);
-        SubscribeMessage<CreateBullet>(OnCreateBullet);
-        SubscribeMessage<DestroyBullet>(OnDestroyBullet);
-    }
-
-    private void OnStartGameWithDificult(AsteroidManager.StartWithDificult message)
+    private bool OnStartGameWithDificult(AsteroidManager.StartWithDificult message)
     {
         _isStart = true;
+        return true;
     }
 
-    private void OnDestroyBullet(DestroyBullet message)
-    {
-        var bullet = GetActor<IActor, int>(message.Data);
-        if (bullet != null)
-        {
-            bullet.SendMessage(new Bullet.Die());
-            RemoveActor(bullet);
-        }
-    }
-
-    private void OnCreateBullet(CreateBullet message)
+    private bool OnCreateBullet(CreateBullet message)
     {
         if (_isStart)
         {
-            var request = new SimpleRequest<Rect>(rect =>
-            {
-                if (_isStart)
-                    Main.Instance.InvokeAt(
-                        () => { AddActor(Core.Get<Model.Bullet>(new BuildBulletMessage(message.Data, rect))); });
-            });
-
-            SendMessage(request);
+            Debug.Log("Create Bullet");
+            var actor = Context.ActorOf<Bullet>();
+            Context.Parent.Tell(new Main.CreateBullet(actor, message.Data));
         }
+
+        return true;
     }
 
-    private void OnGameOver(Main.GameOver message)
+    private bool OnGameOver(Main.GameOver message)
     {
         _isStart = false;
-        var childs = Childs.ToArray();
+        var childs = Context.GetChildren();
+
         foreach (var child in childs)
-        {
-            child.SendMessage(new Bullet.Die());
-            RemoveActor(child);
-        }
+            child.Tell(new Bullet.DestroyBullet());
+
+        return true;
     }
 
     public class CreateBullet : Message<Vector3>
     {
         public CreateBullet(Vector3 data) : base(data)
-        {
-        }
-    }
-
-    public class DestroyBullet : Message<int>
-    {
-        public DestroyBullet(int data) : base(data)
         {
         }
     }

@@ -1,119 +1,67 @@
-﻿using System.Threading;
-using CMA;
-using CMA.Core;
-using CMA.Markers;
-using CMA.Messages;
+﻿using System;
+using Akka.Actor;
 using Model;
-using UnityEngine;
-using Asteroid = View.Asteroid;
-using Random = System.Random;
 
-public class AsteroidManager : Actor<string>
+public class AsteroidManager : ReceiveActor
 {
     private readonly Random _random = new Random();
     private bool _isStart;
 
-    public AsteroidManager() : base("AsteroidManager")
+    public AsteroidManager()
     {
+        Receive<StartWithDificult>(OnStartWithDificult);
+        Receive<CreateAsteroid>(OnCreateAsteroid);
+        Receive<Asteroid.DestroyAsteroid>(OnDestroyAsteroid);
+        Receive<Main.GameOver>(OnGameOver);
     }
 
-    public AsteroidManager(string key, IMessageManager manager) : base(key, manager)
-    {
-    }
-
-    protected override void Subscribe()
-    {
-        AddMarker<AsteroidMarker>();
-
-        SubscribeMessage<StartWithDificult>(OnStartWithDificult);
-        SubscribeMessage<CreateAsteroid>(OnCreateAsteroid);
-        SubscribeMessage<DestroyAsteroid>(OnDestroyAsteroid);
-        SubscribeMessage<Main.GameOver>(OnGameOver);
-    }
-
-    private void OnGameOver(Main.GameOver message)
+    private bool OnGameOver(Main.GameOver message)
     {
         _isStart = false;
-        var childs = Childs.ToArray();
+        var childs = Context.GetChildren();
+
         foreach (var child in childs)
-        {
-            child.SendMessage(new Asteroid.Die());
-            RemoveActor(child);
-        }
+            child.Tell(PoisonPill.Instance, Self);
+
+        return true;
     }
 
-    private void OnStartWithDificult(StartWithDificult message)
+    private bool OnStartWithDificult(StartWithDificult message)
     {
         _isStart = true;
         var count = (int) message.Data;
 
         for (var i = 0; i < count; i++)
-            ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
-                _random.Next(700, 3000), true);
+            Context.System.Scheduler.ScheduleTellOnce(_random.Next(700, 3000), Self, new CreateAsteroid(), null);
+
+        return true;
     }
 
-    private void NeedToCreateAsteroid(object state, bool timedOut)
+    private bool OnDestroyAsteroid(Asteroid.DestroyAsteroid message)
     {
-        SendMessage(new CreateAsteroid());
+        Context.System.Scheduler.ScheduleTellOnce(_random.Next(200, 1000), Self, new CreateAsteroid(), null);
+        return true;
     }
 
-    private void OnDestroyAsteroid(DestroyAsteroid message)
-    {
-        var asteroid = GetActor<IActor, int>(message.Data);
-        if (asteroid != null)
-        {
-            asteroid.SendMessage(new Asteroid.Die());
-            RemoveActor(asteroid);
-
-            ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
-                _random.Next(200, 1000), true);
-        }
-    }
-
-    private void OnCreateAsteroid(CreateAsteroid message)
+    private bool OnCreateAsteroid(CreateAsteroid message)
     {
         if (_isStart)
-        {
-            var request = new SimpleRequest<Rect>(rect =>
-            {
-                Main.Instance.InvokeAt(() =>
-                {
-                    if (_isStart)
-                    {
-                        var asteroid = Core.Get<Model.Asteroid>(new BuildAsteroidMessage(rect));
-                        AddActor(asteroid);
-                    }
-                });
-            });
-            SendMessage(request);
-        }
+            Context.Parent.Tell(new Main.CreateAsteroid(Context.ActorOf<Asteroid>()));
+
+        return true;
     }
 
-    public class AsteroidMarker : Marker<int>
+    public class CreateAsteroid
     {
-        public AsteroidMarker(int key) : base(key)
-        {
-        }
     }
 
-    public class CreateAsteroid : Message
+    public class StartWithDificult
     {
-        public CreateAsteroid() : base(null)
+        public StartWithDificult(Dificult data)
         {
+            Data = data;
         }
-    }
 
-    public class DestroyAsteroid : Message<int>
-    {
-        public DestroyAsteroid(int data) : base(data)
-        {
-        }
-    }
-
-    public class StartWithDificult : Message<Dificult>
-    {
-        public StartWithDificult(Dificult data) : base(data)
-        {
-        }
+        public Dificult Data { get; protected set; }
     }
 }

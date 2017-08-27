@@ -1,47 +1,31 @@
-﻿using CMA;
-using CMA.Messages;
+﻿using Akka.Actor;
+using UnityEngine;
 
 namespace Model
 {
-    public class Ship : Actor<Ship.ShipId>
+    public class Ship : ReceiveActor
     {
-        public Ship() : base(new ShipId(0))
-        {
-        }
+        private View.Ship _ship;
 
-        public Ship(ShipId key, IMessageManager manager) : base(key, manager)
+        public Ship()
         {
-        }
-
-        protected override void Subscribe()
-        {
-            SubscribeMessage<Main.GameOver>(OnGameOver);
-        }
-
-        private void OnGameOver(Main.GameOver message)
-        {
-            SendMessage(new View.Ship.Die());
-            Owner.RemoveActor(TypedKey);
-        }
-
-        public class ShipId
-        {
-            public ShipId(int key)
+            Receive<Main.GameOver>(OnGameOver);
+            Receive<View.Ship>(ship =>
             {
-                Key = key;
-            }
+                _ship = ship;
+                Debug.Log("Catch Ship");
+            });
+        }
 
-            public int Key { get; protected set; }
+        private bool OnGameOver(Main.GameOver message)
+        {
+            _ship.Tell(new View.Ship.Die());
+            Context.Stop(Self);
+            return true;
+        }
 
-            public override bool Equals(object obj)
-            {
-                var keyObj = obj as ShipId;
-
-                if (keyObj != null)
-                    return keyObj.Key == Key;
-
-                return base.Equals(obj);
-            }
+        public class DestroyShip
+        {
         }
     }
 }

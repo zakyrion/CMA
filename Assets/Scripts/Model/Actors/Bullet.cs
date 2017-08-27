@@ -1,19 +1,25 @@
-﻿using CMA;
-using CMA.Messages;
+﻿using Akka.Actor;
 
 namespace Model
 {
-    public class Bullet : Actor<int>
+    public class Bullet : ReceiveActor
     {
-        public Bullet(int key) : base(key)
+        private View.Bullet _bullet;
+
+        public Bullet()
         {
+            Receive<View.Bullet>(bullet => _bullet = bullet);
+            Receive<DestroyBullet>(OnDestroyBullet);
         }
 
-        public Bullet(int key, IMessageManager manager) : base(key, manager)
+        private bool OnDestroyBullet(DestroyBullet destroyBullet)
         {
+            _bullet.Tell(new View.Bullet.Die());
+            Context.Stop(Self);
+            return true;
         }
 
-        protected override void Subscribe()
+        public class DestroyBullet
         {
         }
     }

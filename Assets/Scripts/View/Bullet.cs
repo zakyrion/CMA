@@ -1,13 +1,13 @@
-﻿using CMA.Messages;
-using Model;
+﻿using Akka.Actor;
+using UnityAkkaExtension;
+using UnityAkkaExtension.Messages;
 using UnityEngine;
 
 namespace View
 {
-    public class Bullet : MonoBehaviour
+    public class Bullet : MonoActor
     {
         private Rect _borders;
-        private Model.Bullet _bullet;
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
 
@@ -18,16 +18,16 @@ namespace View
             if (!_isSendDestroy && transform.position.x > _borders.xMax + 1)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new BulletManager.DestroyBullet(_bullet.TypedKey));
+                ActorRef.Tell(new Model.Bullet.DestroyBullet());
             }
         }
 
-        public void Init(Model.Bullet bullet, Rect borders)
+        public void Init(Vector3 position, IActorRef bullet, Rect borders)
         {
-            _bullet = bullet;
+            transform.position = position;
+            InitActor(bullet);
             _borders = borders;
-
-            _bullet.SubscribeMessage<Die>(OnDie);
+            ActorRef.Tell(this);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -35,20 +35,22 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new BulletManager.DestroyBullet(_bullet.TypedKey));
+                ActorRef.Tell(new Model.Bullet.DestroyBullet());
             }
         }
 
         private void OnDie(Die die)
         {
-            Main.Instance.InvokeAt(() => Destroy(gameObject));
+            Destroy(gameObject);
+        }
+
+        protected override void Subscribe()
+        {
+            Receive<Die>(OnDie);
         }
 
         public class Die : Message
         {
-            public Die() : base(null)
-            {
-            }
         }
     }
 }

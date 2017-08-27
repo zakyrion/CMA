@@ -1,26 +1,23 @@
-﻿using CMA.Messages;
-using Model;
+﻿using Akka.Actor;
+using UnityAkkaExtension;
+using UnityAkkaExtension.Messages;
 using UnityEngine;
 
 namespace View
 {
-    public class Asteroid : MonoBehaviour
+    public class Asteroid : MonoActor
     {
-        private Model.Asteroid _asteroid;
-
         [SerializeField] private Vector3 _destination;
 
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
 
-        public void Init(Model.Asteroid asteroid, float speed, Vector3 destination)
+        public void Init(IActorRef asteroid, float speed, Vector3 destination)
         {
+            InitActor(asteroid);
             _speed = speed;
             _destination = destination;
-
-            _asteroid = asteroid;
-            _asteroid.SubscribeMessage<Transform>(message => message.Done(transform));
-            _asteroid.SubscribeMessage<Die>(OnDie);
+            asteroid.Tell(this);
         }
 
         private void Update()
@@ -29,7 +26,7 @@ namespace View
             if (diff.magnitude < .1f && !_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
+                ActorRef.Tell(new Model.Asteroid.DestroyAsteroid());
             }
             else
             {
@@ -42,20 +39,23 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
+                ActorRef.Tell(new Model.Asteroid.DestroyAsteroid());
             }
         }
 
         private void OnDie(Die die)
         {
-            Main.Instance.InvokeAt(() => Destroy(gameObject));
+            Destroy(gameObject);
+        }
+
+        protected override void Subscribe()
+        {
+            Receive<Transform>(message => message.Done(transform));
+            Receive<Die>(OnDie);
         }
 
         public class Die : Message
         {
-            public Die() : base(null)
-            {
-            }
         }
     }
 }

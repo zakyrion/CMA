@@ -1,19 +1,36 @@
-﻿using CMA;
-using CMA.Messages;
+﻿using Akka.Actor;
+using UnityEngine;
 
 namespace Model
 {
-    public class Asteroid : Actor<int>
+    public class Asteroid : ReceiveActor
     {
-        public Asteroid(int key) : base(key)
+        private View.Asteroid _asteroid;
+
+        public Asteroid()
         {
+            Receive<View.Asteroid>(asteroid =>
+            {
+                _asteroid = asteroid;
+                Debug.Log("Catch Asteroid");
+            });
+            Receive<DestroyAsteroid>(OnDestroyAsteroid);
         }
 
-        public Asteroid(int key, IMessageManager manager) : base(key, manager)
+        private bool OnDestroyAsteroid(DestroyAsteroid destroyAsteroid)
         {
+            Context.Parent.Tell(destroyAsteroid);
+            Context.Stop(Self);
+            return true;
         }
 
-        protected override void Subscribe()
+        protected override void PostStop()
+        {
+            _asteroid.Tell(new View.Asteroid.Die());
+            base.PostStop();
+        }
+
+        public class DestroyAsteroid
         {
         }
     }

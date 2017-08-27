@@ -1,23 +1,24 @@
-﻿using CMA.Messages;
+﻿using Akka.Actor;
 using Model;
+using UnityAkkaExtension;
+using UnityAkkaExtension.Messages;
 using UnityEngine;
 
 namespace View
 {
-    public class Ship : MonoBehaviour
+    public class Ship : MonoActor
     {
         private Rect _border;
         [SerializeField] private float _cooldown;
         private bool _isSendDestroy;
-        private Model.Ship _ship;
         [SerializeField] private float _speed;
         private float _timer;
 
         // Use this for initialization
         private void Start()
         {
-            var requset = new SimpleRequest<Rect>(rect => { _border = rect; });
-            Main.Instance.SendMessage(requset);
+            var requset = new SimpleRequest<Rect>(this, rect => { _border = rect; });
+            StarGameManager.Context.ActorSelection(StarGameManager.Path + "*").Tell(requset);
         }
 
         // Update is called once per frame
@@ -35,8 +36,10 @@ namespace View
 
             if (Input.GetKey(KeyCode.Space) && _timer > _cooldown)
             {
+                Debug.Log("Try shoot");
                 _timer = 0;
-                Main.Instance.SendMessage(new BulletManager.CreateBullet(transform.position + Vector3.right));
+                StarGameManager.Context.ActorSelection(StarGameManager.Path + "Main/BulletManager")
+                    .Tell(new BulletManager.CreateBullet(transform.position));
             }
 
             var newZ = Mathf.Clamp(transform.position.z + dir * _speed * Time.deltaTime, _border.yMin + 1,
@@ -44,32 +47,33 @@ namespace View
             transform.position = new Vector3(transform.position.x, 0f, newZ);
         }
 
-        public void Init(Model.Ship ship)
+        public override void InitActor(IActorRef actorRef)
         {
-            _ship = ship;
-            _ship.SubscribeMessage<Die>(OnDie);
+            base.InitActor(actorRef);
+            actorRef.Tell(this);
         }
 
         private void OnDie(Die message)
         {
-            Main.Instance.InvokeAt(() => { Destroy(gameObject); });
+            Destroy(gameObject);
         }
-
 
         private void OnCollisionEnter(Collision collision)
         {
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new Main.GameOver());
+                StarGameManager.Context.ActorSelection(StarGameManager.Path + "*").Tell(new Main.GameOver());
             }
+        }
+
+        protected override void Subscribe()
+        {
+            Receive<Die>(OnDie);
         }
 
         public class Die : Message
         {
-            public Die() : base(null)
-            {
-            }
         }
     }
 }
