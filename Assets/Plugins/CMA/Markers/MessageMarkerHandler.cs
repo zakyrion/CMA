@@ -35,8 +35,8 @@ namespace CMA.Markers
             message.LockMessage();
             if (!message.IsDone)
             {
-                var marker = message.GetMarker<T>();
-                DelegateField.Invoke(message, marker);
+                var marker = message.GetCurrentMarker();
+                DelegateField.Invoke(message, (T)marker);
             }
             message.UnlockMessage();
         }

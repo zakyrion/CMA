@@ -12,32 +12,35 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
 using System.Threading;
 using UnityEngine;
 
 namespace CMA.Messages
 {
-    public abstract class Message : Communication, IMessage
+    public class Message : Communication, IMessage
     {
         protected readonly IActionHandler Action;
         protected object Lock = new object();
 
-        protected Message(IActionHandler action)
+        public Message(object data, IActionHandler action = null)
         {
             Action = action;
+            Data = data;
         }
+
+        public object Data { get; protected set; }
 
         public virtual bool IsDone { get; protected set; }
         public IMessageManager MessageManager { get; set; }
 
         public virtual void Done(object param = null)
         {
+            InvokeChainAction(param);
         }
 
         public virtual string GetKey()
         {
-            return GetType().ToString();
+            return Data.GetType().ToString();
         }
 
         public virtual void LockMessage()
@@ -48,13 +51,9 @@ namespace CMA.Messages
         {
         }
 
-        public void ShowTrace()
+        public T GetData<T>()
         {
-            Debug.Log("Message: " + GetKey());
-            foreach (var trace in Traces)
-            {
-                Debug.Log("Trace: " + trace);
-            }
+            return (T) Data;
         }
 
         public virtual void InvokeChainAction(object param)
@@ -62,16 +61,13 @@ namespace CMA.Messages
             if (Action != null)
                 Action.Invoke(MessageManager, param);
         }
-    }
 
-    public class Message<T> : Message
-    {
-        public Message(T data) : base(null)
+        public void ShowTrace()
         {
-            Data = data;
+            Debug.Log("Message: " + GetKey());
+            foreach (var trace in Traces)
+                Debug.Log("Trace: " + trace);
         }
-
-        public T Data { get; protected set; }
     }
 
     public class SingletonMessage : Message
@@ -79,7 +75,7 @@ namespace CMA.Messages
         private int? _threadId;
         protected AutoResetEvent Event = new AutoResetEvent(true);
 
-        public SingletonMessage(IActionHandler action) : base(action)
+        public SingletonMessage(object data, IActionHandler action = null) : base(data, action)
         {
         }
 
@@ -104,6 +100,7 @@ namespace CMA.Messages
         public override void Done(object param = null)
         {
             IsDone = true;
+            base.Done(param);
         }
 
         public override void LockMessage()

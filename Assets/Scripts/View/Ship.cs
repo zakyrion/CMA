@@ -1,15 +1,15 @@
-﻿using CMA.Messages;
+﻿using CMA;
+using CMA.Messages;
 using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Ship : MonoBehaviour
+    public class Ship : MonoActor<string>
     {
         private Rect _border;
         [SerializeField] private float _cooldown;
         private bool _isSendDestroy;
-        private Model.Ship _ship;
         [SerializeField] private float _speed;
         private float _timer;
 
@@ -17,7 +17,7 @@ namespace View
         private void Start()
         {
             var requset = new SimpleRequest<Rect>(rect => { _border = rect; });
-            Main.Instance.SendMessage(requset);
+            Main.Instance.Send(requset);
         }
 
         // Update is called once per frame
@@ -36,7 +36,7 @@ namespace View
             if (Input.GetKey(KeyCode.Space) && _timer > _cooldown)
             {
                 _timer = 0;
-                Main.Instance.SendMessage(new BulletManager.CreateBullet(transform.position + Vector3.right));
+                Main.Instance.Send(new BulletManager.CreateBullet(transform.position + Vector3.right));
             }
 
             var newZ = Mathf.Clamp(transform.position.z + dir * _speed * Time.deltaTime, _border.yMin + 1,
@@ -44,31 +44,46 @@ namespace View
             transform.position = new Vector3(transform.position.x, 0f, newZ);
         }
 
-        public void Init(Model.Ship ship)
-        {
-            _ship = ship;
-            _ship.SubscribeMessage<Die>(OnDie);
-        }
-
         private void OnDie(Die message)
         {
             Main.Instance.InvokeAt(() => { Destroy(gameObject); });
         }
-
 
         private void OnCollisionEnter(Collision collision)
         {
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new Main.GameOver());
+                Main.Instance.Send(new Main.GameOver());
             }
         }
 
-        public class Die : Message
+        protected override void Subscribe()
         {
-            public Die() : base(null)
+            Receive<Die>(OnDie);
+        }
+
+        public class Die
+        {
+        }
+
+        public class ShipId
+        {
+            public ShipId(int key)
             {
+                Key = key;
+            }
+
+            public int Key { get; protected set; }
+
+            public override bool Equals(object obj)
+            {
+                var keyObj = obj as ShipId;
+
+                if (keyObj != null)
+                    return keyObj.Key == Key;
+
+                return base.Equals(obj);
             }
         }
     }

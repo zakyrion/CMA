@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using CMA;
-using CMA.Messages;
 using UnityEngine;
+using View;
 using Random = System.Random;
 
 namespace Model
@@ -22,14 +22,13 @@ namespace Model
         public override object Build()
         {
             var asteroidGo = Object.Instantiate(Resources.Load<GameObject>(_path + _random.Next(1, _maxIndex)));
-            var asteroid = new Asteroid(GetIndex);
-            return asteroid;
+            return asteroidGo.GetComponent<Asteroid>();
         }
 
         public override object Build(BuildAsteroidMessage param)
         {
             var asteroidGo = Object.Instantiate(Resources.Load<GameObject>(_path + _random.Next(1, _maxIndex)));
-            var asteroid = new Asteroid(GetIndex);
+            var asteroid = asteroidGo.GetComponent<Asteroid>();
 
             asteroidGo.transform.position = new Vector3(param.Borders.xMax + 1f, 0f,
                 param.Borders.yMin + (param.Borders.yMax - param.Borders.yMin) * (float) _random.NextDouble());
@@ -37,8 +36,7 @@ namespace Model
             var destination = new Vector3(param.Borders.xMin - 2f, 0f,
                 param.Borders.yMin + (param.Borders.yMax - param.Borders.yMin) * (float) _random.NextDouble());
 
-            asteroidGo.GetComponent<View.Asteroid>()
-                .Init(asteroid, (float) (5f + 5f * _random.NextDouble()), destination);
+            asteroid.Init(GetIndex, (float) (5f + 5f * _random.NextDouble()), destination);
 
             return asteroid;
         }

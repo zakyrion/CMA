@@ -9,7 +9,7 @@ namespace View
         private void Start()
         {
             Debug.Log("Main: " + Main.Instance);
-            Main.Instance.SendMessage(new Main.InitGame(null));
+            Main.Instance.Send(new Main.InitGame());
         }
     }
 }

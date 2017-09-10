@@ -14,7 +14,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using CMA.Markers;
 using UnityEngine;
@@ -46,6 +45,7 @@ namespace CMA.Messages
 
         public int Id { get; protected set; }
         public string TraceMarker { protected get; set; }
+        public IMessage Message { get; protected set; }
 
         public void AddMarker(IMessageMarkerHandler handler)
         {
@@ -66,69 +66,39 @@ namespace CMA.Messages
             return new MessageManager();
         }
 
-        public virtual void SendMessage(IMessage message)
-        {
-            lock (Lock)
-            {
-                try
-                {
-                    var isDone = false;
-                    message.AddTrace(TraceMarker);
-                    var key = message.GetKey();
+       
 
-                    if (!message.IsAllMarkersCheck())
-                    {
-                        foreach (var marker in message.Markers)
-                            if (MessageMarker.ContainsKey(marker.MarkerKey))
-                            {
-                                foreach (var handler in MessageMarker[marker.MarkerKey])
-                                    handler.Invoke(message);
-                                return;
-                            }
-                    }
-
-                    if (MessageRecievers.ContainsKey(key))
-                    {
-                        for (var i = 0; i < MessageRecievers[key].Count; i++)
-                            MessageRecievers[key][i].Invoke(message);
-
-                        isDone = true;
-                    }
-
-                    if (!isDone)
-                        message.Fail();
-                }
-                catch (Exception exception)
-                {
-                    message.ShowTrace();
-                    Debug.Log(string.Format("Exception:{0} ", exception));
-
-                    message.Fail();
-                }
-            }
-        }
-
-        public bool ContainsMessage<T>() where T : IMessage
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).ToString();
-                return MessageRecievers.ContainsKey(key) || MessageMarker.ContainsKey(key);
-            }
-        }
-
-        public bool ContainsMessage(IMessage message)
+        public bool CanRespond(IMessage message)
         {
             lock (Lock)
             {
                 var key = message.GetKey();
-                return (MessageRecievers.ContainsKey(key) && message.IsAllMarkersCheck()) ||
-                       message.Markers.Any(marker => MessageMarker.ContainsKey(marker.MarkerKey)) ||
-                       MessageMarker.ContainsKey(key);
+                return MessageRecievers.ContainsKey(key) && message.IsAllMarkersCheck();
             }
         }
 
-        public virtual void SubscribeMessage<T>(MessageDelegate<T> @delegate) where T : IMessage
+        public bool CanTransmit(IMessage message)
+        {
+            lock (Lock)
+            {
+                return true;
+            }
+        }
+
+        public virtual void Receive<T>(Action @delegate)
+        {
+            lock (Lock)
+            {
+                var key = typeof(T).ToString();
+
+                if (!MessageRecievers.ContainsKey(key))
+                    MessageRecievers.Add(key, new List<IMessageHandler>());
+
+                MessageRecievers[key].Add(new SimpleMessageHandler<T>(@delegate));
+            }
+        }
+
+        public virtual void Receive<T>(Action<T> @delegate)
         {
             lock (Lock)
             {
@@ -141,20 +111,7 @@ namespace CMA.Messages
             }
         }
 
-        public void SubscribeMessage<T>(MessageDelegate<IMessage> @delegate)
-        {
-            lock (Lock)
-            {
-                var key = typeof(T).ToString();
-
-                if (!MessageRecievers.ContainsKey(key))
-                    MessageRecievers.Add(key, new List<IMessageHandler>());
-
-                MessageRecievers[key].Add(new MessageHandler<IMessage>(@delegate));
-            }
-        }
-
-        public virtual void RemoveMessageReciever<T>(MessageDelegate<T> @delegate) where T : IMessage
+        public virtual void RemoveReceiver<T>(Action<T> @delegate)
         {
             lock (Lock)
             {
@@ -162,6 +119,58 @@ namespace CMA.Messages
 
                 if (MessageRecievers.ContainsKey(key))
                     MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
+            }
+        }
+
+        public virtual void Responce(IMessage message)
+        {
+            lock (Lock)
+            {
+                try
+                {
+                    Message = message;
+                    message.AddTrace(TraceMarker);
+                    var key = message.GetKey();
+
+                    if (MessageRecievers.ContainsKey(key))
+                    {
+                        for (var i = 0; i < MessageRecievers[key].Count; i++)
+                            MessageRecievers[key][i].Invoke(message);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    message.ShowTrace();
+                    Debug.Log(string.Format("Exception:{0} ", exception));
+
+                    message.Fail();
+                }
+            }
+        }
+
+        public virtual void Transmit(IMessage message)
+        {
+            lock (Lock)
+            {
+                try
+                {
+                    message.AddTrace(TraceMarker);
+                    var marker = message.GetCurrentMarker();
+
+                    if (marker != null && MessageMarker.ContainsKey(marker.MarkerKey))
+                    {
+                        message.CheckMarker();
+                        foreach (var handler in MessageMarker[marker.MarkerKey])
+                            handler.Invoke(message);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    message.ShowTrace();
+                    Debug.Log(string.Format("Exception:{0} ", exception));
+
+                    message.Fail();
+                }
             }
         }
 

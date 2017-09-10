@@ -1,26 +1,26 @@
-﻿using CMA.Messages;
+﻿using CMA;
+using CMA.Messages;
 using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Asteroid : MonoBehaviour
+    public class Asteroid : MonoActor<int>
     {
-        private Model.Asteroid _asteroid;
-
         [SerializeField] private Vector3 _destination;
 
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
 
-        public void Init(Model.Asteroid asteroid, float speed, Vector3 destination)
+        public void Init(int id, float speed, Vector3 destination)
         {
+            Init(id);
             _speed = speed;
             _destination = destination;
 
-            _asteroid = asteroid;
-            _asteroid.SubscribeMessage<Transform>(message => message.Done(transform));
-            _asteroid.SubscribeMessage<Die>(OnDie);
+            /*_asteroid = asteroid;
+            _asteroid.Receive<Transform>( ()=> Message.Done(transform));
+            _asteroid.Receive<Die>(OnDie);*/
         }
 
         private void Update()
@@ -29,7 +29,7 @@ namespace View
             if (diff.magnitude < .1f && !_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
+                //Main.Instance.Send(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
             }
             else
             {
@@ -42,7 +42,7 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
+                //Main.Instance.Send(new AsteroidManager.DestroyAsteroid(_asteroid.TypedKey));
             }
         }
 
@@ -56,6 +56,11 @@ namespace View
             public Die() : base(null)
             {
             }
+        }
+
+        protected override void Subscribe()
+        {
+            
         }
     }
 }

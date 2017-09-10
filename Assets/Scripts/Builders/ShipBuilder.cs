@@ -1,5 +1,6 @@
 ﻿using CMA;
 using UnityEngine;
+using View;
 
 namespace Model
 {
@@ -25,10 +26,10 @@ namespace Model
         public override object Build(BuildShipMessage param)
         {
             var shipGO = Object.Instantiate(Resources.Load<GameObject>(_path));
-            var ship = new Ship();
 
             shipGO.transform.position = new Vector3(param.Borders.xMin + 1f, 0f, 0f);
-            shipGO.GetComponent<View.Ship>().Init(ship);
+            var ship = shipGO.GetComponent<Ship>();
+            ship.Init("Ship");
 
             return ship;
         }

@@ -2,6 +2,7 @@
 using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
+using View;
 
 namespace Model
 {
@@ -12,7 +13,7 @@ namespace Model
             Core.SubscribeBuilder(new AsteroidBuilder());
             Core.SubscribeBuilder(new ShipBuilder());
             Core.SubscribeBuilder(new BulletBuilder());
-            
+
             Instance = new Main();
             Instance.AddActor(new AsteroidManager());
             Instance.AddActor(new BulletManager());
@@ -30,45 +31,39 @@ namespace Model
 
         protected override void Subscribe()
         {
-            SubscribeMessage<InitGame>(OnInitGame);
-            SubscribeMessage<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
-            SubscribeMessage<GameOver>(OnGameOver);
+            Receive<InitGame>(OnInitGame);
+            Receive<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
+            Receive<GameOver>(OnGameOver);
         }
 
         private void OnGameOver(GameOver message)
         {
-            SendMessage(new UIService.ShowGameOver());
+            Send(new UIService.ShowGameOver());
 
             foreach (var child in Childs)
-                child.SendMessage(message);
+                child.Send(message);
         }
 
         private void OnStartGameWithDificult(AsteroidManager.StartWithDificult message)
         {
             var request = new SimpleRequest<Rect>(rect => { AddActor(Core.Get<Ship>(new BuildShipMessage(rect))); });
-            SendMessage(request);
+            Send(request);
 
             foreach (var child in Childs)
-                child.SendMessage(message);
+                child.Send(message);
         }
 
         private void OnInitGame(InitGame message)
         {
-            SendMessage(new UIService.ShowDificultUI());
+            Send(new UIService.ShowDificultUI());
         }
 
-        public class InitGame : Message
+        public class InitGame
         {
-            public InitGame(IActionHandler action) : base(action)
-            {
-            }
         }
 
-        public class GameOver : Message
+        public class GameOver
         {
-            public GameOver() : base(null)
-            {
-            }
         }
     }
 }

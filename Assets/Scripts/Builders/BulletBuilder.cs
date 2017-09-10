@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using CMA;
 using UnityEngine;
+using View;
 
 namespace Model
 {
@@ -34,10 +35,10 @@ namespace Model
         public override object Build(BuildBulletMessage param)
         {
             var rocketGO = Object.Instantiate(Resources.Load<GameObject>(_path));
-            var bullet = new Bullet(GetIndex);
-
             rocketGO.transform.position = param.Position;
-            rocketGO.GetComponent<View.Bullet>().Init(bullet, param.Borders);
+
+            var bullet = rocketGO.GetComponent<Bullet>();
+            bullet.Init(GetIndex, param.Borders);
 
             return bullet;
         }

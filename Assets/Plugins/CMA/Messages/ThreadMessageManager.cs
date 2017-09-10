@@ -46,11 +46,20 @@ namespace CMA.Messages
             }
         }
 
-        public override void SendMessage(IMessage message)
+        public override void Responce(IMessage message)
         {
             lock (Lock)
             {
-                Actions.Enqueue(() => { base.SendMessage(message); });
+                Actions.Enqueue(() => { base.Responce(message); });
+                _event.Set();
+            }
+        }
+
+        public override void Transmit(IMessage message)
+        {
+            lock (Lock)
+            {
+                Actions.Enqueue(() => { base.Transmit(message); });
                 _event.Set();
             }
         }

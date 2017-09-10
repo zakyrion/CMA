@@ -17,8 +17,7 @@ namespace CMA.Messages
 {
     public interface IMessageRespounder
     {
-        void SendMessage(IMessage message);
-        bool ContainsMessage<T>() where T : IMessage;
-        bool ContainsMessage(IMessage message);
+        bool CanRespond(IMessage message);
+        bool CanTransmit(IMessage message);
     }
 }

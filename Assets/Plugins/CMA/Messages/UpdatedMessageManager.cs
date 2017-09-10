@@ -58,11 +58,19 @@ namespace CMA.Messages
             return new UpdatedMessageManager();
         }
 
-        public override void SendMessage(IMessage message)
+        public override void Responce(IMessage message)
         {
             lock (Lock)
             {
-                Actions.Enqueue(() => { base.SendMessage(message); });
+                Actions.Enqueue(() => { base.Responce(message); });
+            }
+        }
+
+        public override void Transmit(IMessage message)
+        {
+            lock (Lock)
+            {
+                Actions.Enqueue(() => { base.Transmit(message); });
             }
         }
     }

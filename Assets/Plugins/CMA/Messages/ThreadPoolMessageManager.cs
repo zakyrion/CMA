@@ -13,12 +13,17 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace CMA.Messages
 {
     public class ThreadPoolMessageManager : MessageManager
     {
+        AutoResetEvent _event = new AutoResetEvent(true);
+        private bool _isAtCicle;
+        protected Queue<Action> Actions = new Queue<Action>();
+
         public override IMessageManager NewWithType()
         {
             return new ThreadPoolMessageManager();
@@ -26,12 +31,66 @@ namespace CMA.Messages
 
         public override void InvokeAtManager(Action action)
         {
-            ThreadPool.QueueUserWorkItem(state => { base.InvokeAtManager(action); });
+            _event.WaitOne();
+
+            Actions.Enqueue(action);
+
+            if (!_isAtCicle)
+            {
+                _isAtCicle = true;
+                ThreadPool.QueueUserWorkItem(state => { Tick(); });
+            }
+
+            _event.Set();
         }
 
-        public override void SendMessage(IMessage message)
+        public override void Responce(IMessage message)
         {
-            ThreadPool.QueueUserWorkItem(state => { base.SendMessage(message); });
+            _event.WaitOne();
+
+            Actions.Enqueue(() => { base.Responce(message); });
+
+            if (!_isAtCicle)
+            {
+                _isAtCicle = true;
+                ThreadPool.QueueUserWorkItem(state => { Tick(); });
+            }
+
+            _event.Set();
+        }
+
+        public override void Transmit(IMessage message)
+        {
+            _event.WaitOne();
+
+            Actions.Enqueue(() => { base.Transmit(message); });
+
+            if (!_isAtCicle)
+            {
+                _isAtCicle = true;
+                ThreadPool.QueueUserWorkItem(state => { Tick(); });
+            }
+
+            _event.Set();
+        }
+
+        protected virtual void Tick()
+        {
+            _event.WaitOne();
+
+            Action action = null;
+            if (Actions.Count > 0)
+                action = Actions.Dequeue();
+            else
+                _isAtCicle = false;
+
+            _event.Set();
+
+            if (action != null)
+            {
+                base.InvokeAtManager(action);
+                ThreadPool.QueueUserWorkItem(state => { Tick(); });
+            }
         }
     }
 }

@@ -15,6 +15,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CMA.Markers;
+using UnityEngine;
 
 namespace CMA.Messages
 {
@@ -27,13 +28,25 @@ namespace CMA.Messages
 
         protected Communication()
         {
-            Markers = new List<IMarker>();
+            Markers = new Queue<IMarker>();
             ReturningMarkers = new List<IMarker>();
+        }
+
+        public Queue<IMarker> Markers { get; protected set; }
+
+        public IMarker GetCurrentMarker()
+        {
+            return Markers.Count > 0 ? Markers.Peek() : null;
+        }
+
+        public void CheckMarker()
+        {
+            Markers.Dequeue();
         }
 
         public bool IsAllMarkersCheck()
         {
-            return Markers.All(marker => marker.IsCheck);
+            return Markers.Count == 0;
         }
 
         public bool IsContainsActorId(long id)
@@ -42,26 +55,7 @@ namespace CMA.Messages
         }
 
         public bool IsFaild { get; protected set; }
-        public List<IMarker> Markers { get; protected set; }
         public List<IMarker> ReturningMarkers { get; protected set; }
-
-        public T GetMarker<T>() where T : IMarker
-        {
-            var key = typeof(T).ToString();
-            return (T) Cache[key];
-        }
-
-        public T GetReturningMarker<T>() where T : IMarker
-        {
-            var key = typeof(T).ToString();
-            return (T) CacheReturningMarkers[key];
-        }
-
-        public bool Contains<T>()
-        {
-            var key = typeof(T).ToString();
-            return Cache.ContainsKey(key);
-        }
 
         public void AddMarkerForReturn(IMarker marker)
         {
@@ -71,7 +65,7 @@ namespace CMA.Messages
 
         public void AddMarker(IMarker marker)
         {
-            Markers.Add(marker);
+            Markers.Enqueue(marker);
             Cache[marker.MarkerKey] = marker;
         }
 
@@ -99,6 +93,12 @@ namespace CMA.Messages
         public List<string> Trace()
         {
             return Traces;
+        }
+
+        public T GetReturningMarker<T>() where T : IMarker
+        {
+            var key = typeof(T).ToString();
+            return (T)CacheReturningMarkers[key];
         }
     }
 }

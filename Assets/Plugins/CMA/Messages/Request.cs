@@ -33,6 +33,11 @@ namespace CMA.Messages
                 InvokeChainAction(result);
             }
         }
+
+        public override string GetKey()
+        {
+            return GetType().ToString();
+        }
     }
 
     public abstract class Request<R> : Request

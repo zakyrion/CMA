@@ -11,11 +11,16 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-namespace CMA.Messages.Mediators
+
+namespace CMA
 {
-    public interface IMessageMediator
+    public class Container<T>
     {
-        string Key { get; }
-        void TransmitMessage(IMessage message);
+        public Container(T data)
+        {
+            Data = data;
+        }
+
+        public T Data { get; protected set; }
     }
 }

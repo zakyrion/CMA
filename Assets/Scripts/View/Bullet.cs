@@ -1,13 +1,12 @@
-﻿using CMA.Messages;
+﻿using CMA;
 using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Bullet : MonoBehaviour
+    public class Bullet : MonoActor<int>
     {
         private Rect _borders;
-        private Model.Bullet _bullet;
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
 
@@ -18,16 +17,14 @@ namespace View
             if (!_isSendDestroy && transform.position.x > _borders.xMax + 1)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new BulletManager.DestroyBullet(_bullet.TypedKey));
+                Main.Instance.Send(new BulletManager.DestroyBullet(TypedKey));
             }
         }
 
-        public void Init(Model.Bullet bullet, Rect borders)
+        public void Init(int id, Rect borders)
         {
-            _bullet = bullet;
+            Init(id);
             _borders = borders;
-
-            _bullet.SubscribeMessage<Die>(OnDie);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -35,7 +32,7 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.SendMessage(new BulletManager.DestroyBullet(_bullet.TypedKey));
+                Main.Instance.Send(new BulletManager.DestroyBullet(TypedKey));
             }
         }
 
@@ -44,11 +41,13 @@ namespace View
             Main.Instance.InvokeAt(() => Destroy(gameObject));
         }
 
-        public class Die : Message
+        protected override void Subscribe()
         {
-            public Die() : base(null)
-            {
-            }
+            Receive<Die>(OnDie);
+        }
+
+        public class Die
+        {
         }
     }
 }

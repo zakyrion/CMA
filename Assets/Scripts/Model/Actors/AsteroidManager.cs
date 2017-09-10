@@ -5,7 +5,7 @@ using CMA.Markers;
 using CMA.Messages;
 using Model;
 using UnityEngine;
-using Asteroid = View.Asteroid;
+using View;
 using Random = System.Random;
 
 public class AsteroidManager : Actor<string>
@@ -25,10 +25,10 @@ public class AsteroidManager : Actor<string>
     {
         AddMarker<AsteroidMarker>();
 
-        SubscribeMessage<StartWithDificult>(OnStartWithDificult);
-        SubscribeMessage<CreateAsteroid>(OnCreateAsteroid);
-        SubscribeMessage<DestroyAsteroid>(OnDestroyAsteroid);
-        SubscribeMessage<Main.GameOver>(OnGameOver);
+        Receive<StartWithDificult>(OnStartWithDificult);
+        Receive<CreateAsteroid>(OnCreateAsteroid);
+        Receive<DestroyAsteroid>(OnDestroyAsteroid);
+        Receive<Main.GameOver>(OnGameOver);
     }
 
     private void OnGameOver(Main.GameOver message)
@@ -37,7 +37,7 @@ public class AsteroidManager : Actor<string>
         var childs = Childs.ToArray();
         foreach (var child in childs)
         {
-            child.SendMessage(new Asteroid.Die());
+            child.Send(new Asteroid.Die());
             RemoveActor(child);
         }
     }
@@ -54,7 +54,7 @@ public class AsteroidManager : Actor<string>
 
     private void NeedToCreateAsteroid(object state, bool timedOut)
     {
-        SendMessage(new CreateAsteroid());
+        Send(new CreateAsteroid());
     }
 
     private void OnDestroyAsteroid(DestroyAsteroid message)
@@ -62,7 +62,7 @@ public class AsteroidManager : Actor<string>
         var asteroid = GetActor<IActor, int>(message.Data);
         if (asteroid != null)
         {
-            asteroid.SendMessage(new Asteroid.Die());
+            asteroid.Send(new Asteroid.Die());
             RemoveActor(asteroid);
 
             ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
@@ -80,12 +80,12 @@ public class AsteroidManager : Actor<string>
                 {
                     if (_isStart)
                     {
-                        var asteroid = Core.Get<Model.Asteroid>(new BuildAsteroidMessage(rect));
+                        var asteroid = Core.Get<Asteroid>(new BuildAsteroidMessage(rect));
                         AddActor(asteroid);
                     }
                 });
             });
-            SendMessage(request);
+            Send(request);
         }
     }
 
@@ -96,21 +96,18 @@ public class AsteroidManager : Actor<string>
         }
     }
 
-    public class CreateAsteroid : Message
+    public class CreateAsteroid
     {
-        public CreateAsteroid() : base(null)
-        {
-        }
     }
 
-    public class DestroyAsteroid : Message<int>
+    public class DestroyAsteroid : Container<int>
     {
         public DestroyAsteroid(int data) : base(data)
         {
         }
     }
 
-    public class StartWithDificult : Message<Dificult>
+    public class StartWithDificult : Container<Dificult>
     {
         public StartWithDificult(Dificult data) : base(data)
         {

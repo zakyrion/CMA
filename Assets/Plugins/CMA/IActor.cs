@@ -18,7 +18,7 @@ using CMA.Messages;
 
 namespace CMA
 {
-    public interface IActor
+    public interface IActor: IMessageRespounder
     {
         IMessageManager Manager { get; }
         IMarker Marker { get; }
@@ -47,10 +47,10 @@ namespace CMA
         R GetActor<R, K>(K key);
         T GetActor<T>();
 
-        void SendMessage(IMessage message);
-
-        bool ContainsMessage<T>() where T : IMessage;
-        bool ContainsMessage(IMessage message);
+        void Send(IMessage message);
+        void Send(object data, IActionHandler action = null);
+        void Send(object data, params IMarker[] markers);
+        void Send(object data, IActionHandler action, params IMarker[] markers);
 
         void InvokeAt(Action action);
     }

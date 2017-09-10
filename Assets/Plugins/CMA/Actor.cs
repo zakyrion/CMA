@@ -30,7 +30,7 @@ namespace CMA
         }
     }
 
-    public abstract class Actor<K> : IKeyActor<K>
+    public class Actor<K> : IKeyActor<K>
     {
         protected Dictionary<long, IActor> Cache = new Dictionary<long, IActor>();
 
@@ -38,30 +38,29 @@ namespace CMA
         protected Dictionary<string, IKeyStorage> KeyCache = new Dictionary<string, IKeyStorage>();
         protected object Lock = new object();
 
-        protected Actor(K key)
+        public Actor(K key)
         {
-            //Debug.Log("Create Actor: " + GetType().Name);
             Id = ActorId.CurrentId;
             Key = key;
             Manager = new ThreadPoolMessageManager();
-            //Manager = new MessageManager();
             Manager.TraceMarker = GetType().ToString();
             KeyType = typeof(K).ToString();
+
             Subscribe();
         }
 
-        protected Actor(K key, IMessageManager manager)
+        public Actor(K key, IMessageManager manager)
         {
             Id = ActorId.CurrentId;
             Key = key;
             Manager = manager;
             Manager.TraceMarker = GetType().ToString();
             KeyType = typeof(K).ToString();
+
             Subscribe();
         }
 
         public object CustomKey { get; protected set; }
-
 
         public IMessageManager Manager { get; protected set; }
         public IMarker Marker { get; protected set; }
@@ -69,6 +68,7 @@ namespace CMA
         public IActor Owner { get; protected set; }
         public object Key { get; protected set; }
         public string KeyType { get; protected set; }
+        protected IMessage Message { get { return Manager.Message; } }
 
         public virtual void OnAdd(IActor owner)
         {
@@ -82,7 +82,6 @@ namespace CMA
 
         public virtual void Quit()
         {
-            //Debug.Log("Quit: " + GetType().Name);
             Manager.Quit();
             foreach (var child in Childs)
                 child.Quit();
@@ -182,7 +181,7 @@ namespace CMA
         {
             lock (Lock)
             {
-                return (T) Cache[id];
+                return (T)Cache[id];
             }
         }
 
@@ -220,25 +219,35 @@ namespace CMA
             {
                 foreach (var child in Childs)
                     if (child is T)
-                        return (T) child;
+                        return (T)child;
             }
 
             return default(T);
         }
 
-        public virtual void SendMessage(IMessage message)
+        public void Send(IMessage message)
         {
             Manager.InvokeAtManager(() => { SendMessageHide(message); });
         }
 
-        public virtual bool ContainsMessage<T>() where T : IMessage
+        public virtual void Send(object data, IActionHandler action = null)
         {
-            return Manager.ContainsMessage<T>();
+            var message = new Message(data) { MessageManager = Manager };
+            Manager.InvokeAtManager(() => { SendMessageHide(message); });
         }
 
-        public virtual bool ContainsMessage(IMessage message)
+        public virtual void Send(object data, params IMarker[] markers)
         {
-            return Manager.ContainsMessage(message);
+            var message = new Message(data) { MessageManager = Manager };
+            message.AddMarkers(markers);
+            Manager.InvokeAtManager(() => { SendMessageHide(message); });
+        }
+
+        public virtual void Send(object data, IActionHandler action, params IMarker[] markers)
+        {
+            var message = new Message(data, action) { MessageManager = Manager };
+            message.AddMarkers(markers);
+            Manager.InvokeAtManager(() => { SendMessageHide(message); });
         }
 
         public void InvokeAt(Action action)
@@ -248,7 +257,7 @@ namespace CMA
 
         public K TypedKey
         {
-            get { return (K) Key; }
+            get { return (K)Key; }
         }
 
         protected void SendMessageHide(IMessage message)
@@ -258,44 +267,70 @@ namespace CMA
                 if (message.IsContainsActorId(Id))
                     return;
 
-                if (message.MessageManager == null)
-                    message.MessageManager = Manager;
-
                 message.AddActorId(Id);
                 message.AddTrace(GetType().ToString());
 
-                if (Marker != null)
+                if (Manager.CanRespond(message))
                 {
-                    message.AddMarkerForReturn(Marker);
+                    Manager.Responce(message);
                     return;
                 }
 
-                if (ContainsMessage(message))
+                if (Manager.CanTransmit(message))
                 {
-                    Manager.SendMessage(message);
+                    Manager.Transmit(message);
                     return;
                 }
+
+                var isSended = false;
 
                 foreach (var child in Childs)
-                    if (child.ContainsMessage(message))
-                        child.SendMessage(message);
+                    if (child.CanRespond(message))
+                    {
+                        child.Send(message);
+                        isSended = true;
+                    }
+
+                if (isSended)
+                    return;
+
+                foreach (var child in Childs)
+                    if (child.CanTransmit(message))
+                    {
+                        child.Send(message);
+                        isSended = true;
+                    }
+
+                if (isSended)
+                {
+                    if (Marker != null)
+                        message.AddMarkerForReturn(Marker);
+
+                    return;
+                }
 
                 if (Owner != null)
-                    Owner.SendMessage(message);
+                {
+                    if (Marker != null)
+                        message.AddMarkerForReturn(Marker);
+                    Owner.Send(message);
+                }
             }
         }
 
-
-        protected abstract void Subscribe();
-
-        public virtual void SubscribeMessage<T>(MessageDelegate<T> @delegate) where T : IMessage
+        protected virtual void Subscribe()
         {
-            Manager.SubscribeMessage(@delegate);
+            
         }
 
-        public virtual void SubscribeMessage<T>(MessageDelegate<IMessage> @delegate)
+        public virtual void Receive<T>(Action @delegate)
         {
-            Manager.SubscribeMessage<T>(@delegate);
+            Manager.Receive<T>(@delegate);
+        }
+
+        public virtual void Receive<T>(Action<T> @delegate)
+        {
+            Manager.Receive(@delegate);
         }
 
         protected void AddMarker<M>() where M : IMarker
@@ -305,7 +340,7 @@ namespace CMA
                 if (Contains(marker.ObjKey))
                 {
                     marker.Check();
-                    KeyCache[marker.ObjKeyType].Get<IActor>(marker.ObjKey).SendMessage(message);
+                    KeyCache[marker.ObjKeyType].Get<IActor>(marker.ObjKey).Send(message);
                 }
             });
             Manager.AddMarker(handler);
@@ -320,6 +355,16 @@ namespace CMA
         protected void RemoveMarker(IMessageMarkerHandler handler)
         {
             Manager.RemoveMarker(handler);
+        }
+
+        public bool CanRespond(IMessage message)
+        {
+            return Manager.CanRespond(message);
+        }
+
+        public bool CanTransmit(IMessage message)
+        {
+            return Manager.CanTransmit(message);
         }
     }
 }

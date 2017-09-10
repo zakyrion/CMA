@@ -3,7 +3,7 @@ using CMA.Core;
 using CMA.Messages;
 using Model;
 using UnityEngine;
-using Bullet = View.Bullet;
+using View;
 
 public class BulletManager : Actor<string>
 {
@@ -19,10 +19,10 @@ public class BulletManager : Actor<string>
 
     protected override void Subscribe()
     {
-        SubscribeMessage<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
-        SubscribeMessage<Main.GameOver>(OnGameOver);
-        SubscribeMessage<CreateBullet>(OnCreateBullet);
-        SubscribeMessage<DestroyBullet>(OnDestroyBullet);
+        Receive<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
+        Receive<Main.GameOver>(OnGameOver);
+        Receive<CreateBullet>(OnCreateBullet);
+        Receive<DestroyBullet>(OnDestroyBullet);
     }
 
     private void OnStartGameWithDificult(AsteroidManager.StartWithDificult message)
@@ -35,7 +35,7 @@ public class BulletManager : Actor<string>
         var bullet = GetActor<IActor, int>(message.Data);
         if (bullet != null)
         {
-            bullet.SendMessage(new Bullet.Die());
+            bullet.Send(new Bullet.Die());
             RemoveActor(bullet);
         }
     }
@@ -48,10 +48,10 @@ public class BulletManager : Actor<string>
             {
                 if (_isStart)
                     Main.Instance.InvokeAt(
-                        () => { AddActor(Core.Get<Model.Bullet>(new BuildBulletMessage(message.Data, rect))); });
+                        () => { AddActor(Core.Get<Bullet>(new BuildBulletMessage(message.Data, rect))); });
             });
 
-            SendMessage(request);
+            Send(request);
         }
     }
 
@@ -61,19 +61,19 @@ public class BulletManager : Actor<string>
         var childs = Childs.ToArray();
         foreach (var child in childs)
         {
-            child.SendMessage(new Bullet.Die());
+            child.Send(new Bullet.Die());
             RemoveActor(child);
         }
     }
 
-    public class CreateBullet : Message<Vector3>
+    public class CreateBullet : Container<Vector3>
     {
         public CreateBullet(Vector3 data) : base(data)
         {
         }
     }
 
-    public class DestroyBullet : Message<int>
+    public class DestroyBullet : Container<int>
     {
         public DestroyBullet(int data) : base(data)
         {

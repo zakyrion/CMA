@@ -16,6 +16,7 @@ namespace CMA.Messages
 {
     public interface IMessage : ICommunication
     {
+        T GetData<T>();
         bool IsDone { get; }
         IMessageManager MessageManager { get; set; }
         void Done(object param = null);

@@ -16,11 +16,11 @@ using System;
 
 namespace CMA.Messages
 {
-    public class MessageHandler<T> : IMessageHandler
+    public class SimpleMessageHandler<T> : IMessageHandler
     {
-        protected Action<T> DelegateField;
+        protected Action DelegateField;
 
-        public MessageHandler(Action<T> @delegate)
+        public SimpleMessageHandler(Action @delegate)
         {
             DelegateField = @delegate;
         }
@@ -51,7 +51,7 @@ namespace CMA.Messages
             {
                 message.LockMessage();
                 if (!message.IsDone)
-                    DelegateField(message.GetData<T>());
+                    DelegateField();
                 message.UnlockMessage();
             }
         }

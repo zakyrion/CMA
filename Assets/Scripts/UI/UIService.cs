@@ -1,8 +1,8 @@
-﻿using CMA.Messages;
+﻿using CMA;
 using Model;
 using UnityEngine;
 
-public class UIService : MonoBehaviour
+public class UIService : MonoActor<string>
 {
     private Dificult _dificult;
     [SerializeField] private GameObject _dificultPanel;
@@ -11,8 +11,8 @@ public class UIService : MonoBehaviour
 
     private void Awake()
     {
-        Main.Instance.SubscribeMessage<ShowDificultUI>(OnShowDificultUI);
-        Main.Instance.SubscribeMessage<ShowGameOver>(OnShowGameOverUI);
+        Init("UIService");
+        Main.Instance.AddActor(this);
     }
 
     private void OnShowGameOverUI(ShowGameOver message)
@@ -31,26 +31,26 @@ public class UIService : MonoBehaviour
     {
         _dificult = (Dificult) dificult;
         _dificultPanel.SetActive(false);
-        Main.Instance.SendMessage(new AsteroidManager.StartWithDificult(_dificult));
+        Main.Instance.Send(new AsteroidManager.StartWithDificult(_dificult));
     }
 
     public void Restart()
     {
         _gameOver.SetActive(false);
-        Main.Instance.SendMessage(new AsteroidManager.StartWithDificult(_dificult));
+        Main.Instance.Send(new AsteroidManager.StartWithDificult(_dificult));
     }
 
-    public class ShowDificultUI : Message
+    protected override void Subscribe()
     {
-        public ShowDificultUI() : base(null)
-        {
-        }
+        Receive<ShowDificultUI>(OnShowDificultUI);
+        Receive<ShowGameOver>(OnShowGameOverUI);
     }
 
-    public class ShowGameOver : Message
+    public class ShowDificultUI
     {
-        public ShowGameOver() : base(null)
-        {
-        }
+    }
+
+    public class ShowGameOver
+    {
     }
 }
