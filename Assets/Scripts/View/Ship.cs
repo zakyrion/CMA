@@ -17,7 +17,7 @@ namespace View
         private void Start()
         {
             var requset = new SimpleRequest<Rect>(rect => { _border = rect; });
-            Main.Instance.Send(requset);
+            Send(requset);
         }
 
         // Update is called once per frame
@@ -36,7 +36,7 @@ namespace View
             if (Input.GetKey(KeyCode.Space) && _timer > _cooldown)
             {
                 _timer = 0;
-                Main.Instance.Send(new BulletManager.CreateBullet(transform.position + Vector3.right));
+                Send(new BulletManager.CreateBullet(transform.position + Vector3.right));
             }
 
             var newZ = Mathf.Clamp(transform.position.z + dir * _speed * Time.deltaTime, _border.yMin + 1,
@@ -44,47 +44,24 @@ namespace View
             transform.position = new Vector3(transform.position.x, 0f, newZ);
         }
 
-        private void OnDie(Die message)
-        {
-            Main.Instance.InvokeAt(() => { Destroy(gameObject); });
-        }
 
         private void OnCollisionEnter(Collision collision)
         {
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.Send(new Main.GameOver());
+                Send(new Main.GameOver());
+                Destroy(gameObject);
             }
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
         }
 
         protected override void Subscribe()
         {
-            Receive<Die>(OnDie);
-        }
-
-        public class Die
-        {
-        }
-
-        public class ShipId
-        {
-            public ShipId(int key)
-            {
-                Key = key;
-            }
-
-            public int Key { get; protected set; }
-
-            public override bool Equals(object obj)
-            {
-                var keyObj = obj as ShipId;
-
-                if (keyObj != null)
-                    return keyObj.Key == Key;
-
-                return base.Equals(obj);
-            }
         }
     }
 }

@@ -227,6 +227,9 @@ namespace CMA
 
         public void Send(IMessage message)
         {
+            if (message.MessageManager == null)
+                message.MessageManager = Manager;
+
             Manager.InvokeAtManager(() => { SendMessageHide(message); });
         }
 

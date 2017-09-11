@@ -1,5 +1,4 @@
 ﻿using CMA;
-using Model;
 using UnityEngine;
 
 namespace View
@@ -17,7 +16,7 @@ namespace View
             if (!_isSendDestroy && transform.position.x > _borders.xMax + 1)
             {
                 _isSendDestroy = true;
-                Main.Instance.Send(new BulletManager.DestroyBullet(TypedKey));
+                Send(new BulletManager.DestroyBullet(TypedKey));
             }
         }
 
@@ -32,13 +31,13 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Main.Instance.Send(new BulletManager.DestroyBullet(TypedKey));
+                Send(new BulletManager.DestroyBullet(TypedKey));
             }
         }
 
-        private void OnDie(Die die)
+        private void OnDie()
         {
-            Main.Instance.InvokeAt(() => Destroy(gameObject));
+            Destroy(gameObject);
         }
 
         protected override void Subscribe()

@@ -9,7 +9,7 @@ namespace View
     {
         private Rect _border;
 
-        private void Awake()
+        protected override void Awake()
         {
             Init("BorderCalculator");
             Main.Instance.AddActor(this);

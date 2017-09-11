@@ -188,5 +188,19 @@ namespace CMA
         {
             Manager.Receive(@delegate);
         }
+
+        #region Unity
+
+        protected virtual void Awake()
+        {
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (Owner != null && Owner.Contains(TypedKey))
+                Owner.RemoveActor(TypedKey);
+        }
+
+        #endregion
     }
 }

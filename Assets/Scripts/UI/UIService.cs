@@ -9,20 +9,22 @@ public class UIService : MonoActor<string>
 
     [SerializeField] private GameObject _gameOver;
 
-    private void Awake()
+    protected override void Awake()
     {
+        Debug.Log("Init UI Service");
         Init("UIService");
         Main.Instance.AddActor(this);
     }
 
-    private void OnShowGameOverUI(ShowGameOver message)
+    private void OnShowGameOverUI()
     {
         _gameOver.SetActive(true);
         _dificultPanel.SetActive(false);
     }
 
-    private void OnShowDificultUI(ShowDificultUI message)
+    private void OnShowDificultUI()
     {
+        Debug.Log("Catch: OnShowDificultUI");
         _gameOver.SetActive(false);
         _dificultPanel.SetActive(true);
     }

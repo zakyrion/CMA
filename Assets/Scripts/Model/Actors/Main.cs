@@ -36,25 +36,31 @@ namespace Model
             Receive<GameOver>(OnGameOver);
         }
 
-        private void OnGameOver(GameOver message)
+        private void OnGameOver()
         {
             Send(new UIService.ShowGameOver());
 
             foreach (var child in Childs)
-                child.Send(message);
+                child.Send(Message);
         }
 
-        private void OnStartGameWithDificult(AsteroidManager.StartWithDificult message)
+        private void OnStartGameWithDificult()
         {
-            var request = new SimpleRequest<Rect>(rect => { AddActor(Core.Get<Ship>(new BuildShipMessage(rect))); });
+            Debug.Log("OnStartGameWithDificult");
+            var request = new SimpleRequest<Rect>(rect =>
+            {
+                Debug.Log("Catch Rect Responce");
+                AddActor(Core.Get<Ship>(new BuildShipMessage(rect)));
+            });
             Send(request);
 
             foreach (var child in Childs)
-                child.Send(message);
+                child.Send(Message);
         }
 
         private void OnInitGame(InitGame message)
         {
+            Debug.Log("Catch: OnInitGame");
             Send(new UIService.ShowDificultUI());
         }
 

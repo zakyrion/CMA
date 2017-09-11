@@ -21,17 +21,14 @@ namespace CMA.Messages
     /// <typeparam name="R">Result type</typeparam>
     public abstract class Request : SingletonMessage
     {
-        protected Request(IActionHandler action) : base(action)
+        protected Request(IActionHandler action) : base(null, action)
         {
         }
 
         public override void Done(object result = null)
         {
             if (result != null && !IsDone)
-            {
-                base.Done();
-                InvokeChainAction(result);
-            }
+                base.Done(result);
         }
 
         public override string GetKey()

@@ -66,7 +66,7 @@ namespace CMA.Messages
             return new MessageManager();
         }
 
-       
+
 
         public bool CanRespond(IMessage message)
         {
@@ -81,7 +81,8 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                return true;
+                var marker = message.GetCurrentMarker();
+                return marker != null && MessageMarker.ContainsKey(marker.MarkerKey);
             }
         }
 

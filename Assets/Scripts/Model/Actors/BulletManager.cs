@@ -55,7 +55,7 @@ public class BulletManager : Actor<string>
         }
     }
 
-    private void OnGameOver(Main.GameOver message)
+    private void OnGameOver()
     {
         _isStart = false;
         var childs = Childs.ToArray();
