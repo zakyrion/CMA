@@ -18,22 +18,16 @@ namespace CMA.Messages
 {
     public class MessageHandler<T> : IMessageHandler
     {
-        protected Action<T> DelegateField;
+        protected Action<T, IMessage> DelegateField;
 
-        public MessageHandler(Action<T> @delegate)
+        public MessageHandler(Action<T, IMessage> @delegate)
         {
             DelegateField = @delegate;
         }
 
-        public string Key
-        {
-            get { return typeof(T).ToString(); }
-        }
+        public string Key => typeof(T).ToString();
 
-        public Delegate Delegate
-        {
-            get { return DelegateField; }
-        }
+        public Delegate Delegate => DelegateField;
 
         public bool Contains(Delegate @delegate)
         {
@@ -47,13 +41,9 @@ namespace CMA.Messages
 
         public void Invoke(IMessage message)
         {
-            if (!message.IsDone)
-            {
-                message.LockMessage();
-                if (!message.IsDone)
-                    DelegateField(message.GetData<T>());
-                message.UnlockMessage();
-            }
+            message.LockMessage();
+            DelegateField(message.GetData<T>(), message);
+            message.UnlockMessage();
         }
     }
 }

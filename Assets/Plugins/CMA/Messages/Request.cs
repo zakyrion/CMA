@@ -12,44 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
 namespace CMA.Messages
 {
     /// <summary>
     /// </summary>
     /// <typeparam name="R">Result type</typeparam>
-    public abstract class Request : SingletonMessage
+    public class Request<R> : SingletonMessage
     {
-        protected Request(IActionHandler action) : base(null, action)
-        {
-        }
-
-        public override void Done(object result = null)
-        {
-            if (result != null && !IsDone)
-                base.Done(result);
-        }
-
-        public override string GetKey()
-        {
-            return GetType().ToString();
-        }
-    }
-
-    public abstract class Request<R> : Request
-    {
-        protected Request(IActionHandler action, R data) : base(action)
-        {
-            Data = data;
-        }
-
-        public R Data { get; protected set; }
-    }
-
-    public class SimpleRequest<R> : Request
-    {
-        public SimpleRequest(Action<R> action) : base(new ActionHandler<R>(action))
+        public Request(object data, IRespounceCode respounceCode = null) : base(data, respounceCode)
         {
         }
 
@@ -59,18 +29,11 @@ namespace CMA.Messages
         }
     }
 
-    /// <summary>
-    /// </summary>
-    /// <typeparam name="R">Result type</typeparam>
-    /// <typeparam name="T">Data param</typeparam>
-    public abstract class Request<R, T> : Request
+    public class SimpleRequest<R> : SingletonMessage
     {
-        protected Request(IActionHandler action, T data) : base(action)
+        public SimpleRequest(IRespounceCode respounceCode = null) : base(null, respounceCode)
         {
-            Data = data;
         }
-
-        public T Data { get; protected set; }
 
         public override string GetKey()
         {

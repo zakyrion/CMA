@@ -14,19 +14,24 @@
 
 using System;
 
-namespace CMA.Messages
+namespace CMA.Core
 {
-    public interface IMessageManager
+    public class ThreadController : IThreadController
     {
-        IMessage Message { get; }
+        protected readonly object Lock = new object();
 
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
+        public virtual void Remove()
+        {
+        }
 
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
+        public virtual void Invoke(Action action)
+        {
+            action?.Invoke();
+        }
 
-        void Responce(IMessage message);
-        void Quit();
+        public virtual void Invoke<T>(Action<T> action, T param)
+        {
+            action?.Invoke(param);
+        }
     }
 }

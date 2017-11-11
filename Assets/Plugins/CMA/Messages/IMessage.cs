@@ -16,10 +16,8 @@ namespace CMA.Messages
 {
     public interface IMessage : ICommunication
     {
+        IRespounceCode RespounceCode { get; }
         T GetData<T>();
-        bool IsDone { get; }
-        IMessageManager MessageManager { get; set; }
-        void Done(object param = null);
         string GetKey();
         void LockMessage();
         void UnlockMessage();

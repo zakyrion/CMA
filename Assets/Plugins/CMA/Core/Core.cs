@@ -16,21 +16,26 @@ namespace CMA.Core
 {
     public static class Core
     {
-        private static readonly BuildManager _buildManager = new BuildManager();
+        private static readonly BuildManager BuildManager = new BuildManager();
+
+        static Core()
+        {
+            SubscribeBuilder(new MailBoxBuilder());
+        }
 
         public static void SubscribeBuilder(IBuilder builder)
         {
-            _buildManager.SubscribeBuilder(builder);
+            BuildManager.SubscribeBuilder(builder);
         }
 
         public static T Get<T>()
         {
-            return _buildManager.Build<T>();
+            return BuildManager.Build<T>();
         }
 
         public static T Get<T>(object param)
         {
-            return _buildManager.Build<T>(param);
+            return BuildManager.Build<T>(param);
         }
     }
 }

@@ -23,4 +23,30 @@ namespace CMA
 
         public T Data { get; protected set; }
     }
+
+    public class Container<T, K>
+    {
+        public Container(T param1, K param2)
+        {
+            Param1 = param1;
+            Param2 = param2;
+        }
+
+        public T Param1 { get; protected set; }
+        public K Param2 { get; protected set; }
+    }
+
+    public class Container<T, K, M>
+    {
+        public Container(T param1, K param2, M param3)
+        {
+            Param1 = param1;
+            Param2 = param2;
+            Param3 = param3;
+        }
+
+        public T Param1 { get; protected set; }
+        public K Param2 { get; protected set; }
+        public M Param3 { get; protected set; }
+    }
 }

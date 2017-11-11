@@ -13,50 +13,24 @@
 //   limitations under the License.
 
 using System;
-using CMA.Markers;
 using CMA.Messages;
 
 namespace CMA
 {
-    public interface IActor: IMessageRespounder
+    public interface IActor
     {
-        IMessageManager Manager { get; }
-        IMarker Marker { get; }
-        long Id { get; }
-        IActor Owner { get; }
-        object Key { get; }
-        string KeyType { get; }
+        IMailBox MailBox { get; }
 
-        void OnAdd(IActor owner);
-        void OnRemove();
+        void CheckMailBox();
+        void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest);
         void Quit();
 
-        bool Contains(long id);
-        bool Contains<T>(T id);
-        bool Contains(object key);
-        bool Contains(IActor actor);
+        void Send(object data, string adress = "");
+        void Send(object data, Action action, string adress = "");
 
-        void AddActor<T>(IKeyActor<T> actor);
+        void Ask<TR>(Action<TR> action, string adress = "");
+        void Ask<TM, TR>(TM data, Action<TR> action, string adress = "");
 
-        void RemoveActor(long id);
-        void RemoveActor(IActor actor);
-        void RemoveActor<T>(T key);
-
-        T GetActor<T>(long id);
-        IActor GetActor<T>(T key);
-        R GetActor<R, K>(K key);
-        T GetActor<T>();
-
-        void Send(IMessage message);
-        void Send(object data, IActionHandler action = null);
-        void Send(object data, params IMarker[] markers);
-        void Send(object data, IActionHandler action, params IMarker[] markers);
-
-        void InvokeAt(Action action);
-    }
-
-    public interface IKeyActor<T> : IActor
-    {
-        T TypedKey { get; }
+        void Respounce(IMessage message, object data = null);
     }
 }

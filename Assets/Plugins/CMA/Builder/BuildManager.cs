@@ -11,11 +11,12 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 using System.Collections.Generic;
 
 namespace CMA
 {
-    public class BuildManager: IBuildManager
+    public class BuildManager : IBuildManager
     {
         protected Dictionary<string, IBuilder> Builders = new Dictionary<string, IBuilder>();
 
@@ -26,8 +27,8 @@ namespace CMA
 
         public virtual T Build<T>()
         {
-            T result = default(T);
-            string key = typeof(T).Name;
+            var result = default(T);
+            var key = typeof(T).Name;
 
             if (Builders.ContainsKey(key))
                 result = (T) Builders[key].Build();
@@ -37,11 +38,11 @@ namespace CMA
 
         public T Build<T>(object param)
         {
-            T result = default(T);
-            string key = typeof(T).Name;
+            var result = default(T);
+            var key = typeof(T).Name;
 
             if (Builders.ContainsKey(key))
-                result = (T)Builders[key].Build(param);
+                result = (T) Builders[key].Build(param);
 
             return result;
         }

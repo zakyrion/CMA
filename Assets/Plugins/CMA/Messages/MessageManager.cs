@@ -14,79 +14,44 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using CMA.Markers;
+using CMA.Core;
 using UnityEngine;
 
 namespace CMA.Messages
 {
     public class MessageManager : IMessageManager
     {
-        private static int _nextId = int.MinValue;
         protected readonly object Lock = new object();
-
-        protected Dictionary<string, List<IMessageMarkerHandler>> MessageMarker =
-            new Dictionary<string, List<IMessageMarkerHandler>>();
 
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
 
+        protected IThreadController ThreadController;
+
         public MessageManager()
         {
-            Id = NextId;
+            ThreadController = new ThreadPoolController();
         }
 
-        public static int NextId
+        public MessageManager(IThreadController threadController)
         {
-            get { return Interlocked.Increment(ref _nextId); }
+            ThreadController = threadController;
+        }
+
+        public virtual void Quit()
+        {
+            lock (Lock)
+            {
+                MessageRecievers.Clear();
+            }
         }
 
         #region Messages
 
-        public int Id { get; protected set; }
         public string TraceMarker { protected get; set; }
         public IMessage Message { get; protected set; }
 
-        public void AddMarker(IMessageMarkerHandler handler)
-        {
-            if (!MessageMarker.ContainsKey(handler.Key))
-                MessageMarker.Add(handler.Key, new List<IMessageMarkerHandler> { handler });
-            else
-                MessageMarker[handler.Key].Add(handler);
-        }
-
-        public void RemoveMarker(IMessageMarkerHandler handler)
-        {
-            if (MessageMarker.ContainsKey(handler.Key))
-                MessageMarker[handler.Key].Remove(handler);
-        }
-
-        public virtual IMessageManager NewWithType()
-        {
-            return new MessageManager();
-        }
-
-
-
-        public bool CanRespond(IMessage message)
-        {
-            lock (Lock)
-            {
-                var key = message.GetKey();
-                return MessageRecievers.ContainsKey(key) && message.IsAllMarkersCheck();
-            }
-        }
-
-        public bool CanTransmit(IMessage message)
-        {
-            lock (Lock)
-            {
-                var marker = message.GetCurrentMarker();
-                return marker != null && MessageMarker.ContainsKey(marker.MarkerKey);
-            }
-        }
-
-        public virtual void Receive<T>(Action @delegate)
+        public virtual void Receive<T>(Action<IMessage> @delegate)
         {
             lock (Lock)
             {
@@ -99,7 +64,7 @@ namespace CMA.Messages
             }
         }
 
-        public virtual void Receive<T>(Action<T> @delegate)
+        public virtual void Receive<T>(Action<T, IMessage> @delegate)
         {
             lock (Lock)
             {
@@ -112,7 +77,15 @@ namespace CMA.Messages
             }
         }
 
-        public virtual void RemoveReceiver<T>(Action<T> @delegate)
+        public bool CanRespounce(IMessage message)
+        {
+            lock (Lock)
+            {
+                return MessageRecievers.ContainsKey(message.GetKey());
+            }
+        }
+
+        public virtual void RemoveReceiver<T>(Action<T, IMessage> @delegate)
         {
             lock (Lock)
             {
@@ -127,72 +100,30 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
+                ThreadController.Invoke(HandleMessage, message);
+            }
+        }
+
+        private void HandleMessage(IMessage message)
+        {
+            lock (Lock)
+            {
                 try
                 {
                     Message = message;
                     message.AddTrace(TraceMarker);
                     var key = message.GetKey();
-
                     if (MessageRecievers.ContainsKey(key))
-                    {
                         for (var i = 0; i < MessageRecievers[key].Count; i++)
                             MessageRecievers[key][i].Invoke(message);
-                    }
                 }
                 catch (Exception exception)
                 {
                     message.ShowTrace();
-                    Debug.Log(string.Format("Exception:{0} ", exception));
+                    Debug.Log($"Exception:{exception} ");
 
                     message.Fail();
                 }
-            }
-        }
-
-        public virtual void Transmit(IMessage message)
-        {
-            lock (Lock)
-            {
-                try
-                {
-                    message.AddTrace(TraceMarker);
-                    var marker = message.GetCurrentMarker();
-
-                    if (marker != null && MessageMarker.ContainsKey(marker.MarkerKey))
-                    {
-                        message.CheckMarker();
-                        foreach (var handler in MessageMarker[marker.MarkerKey])
-                            handler.Invoke(message);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    message.ShowTrace();
-                    Debug.Log(string.Format("Exception:{0} ", exception));
-
-                    message.Fail();
-                }
-            }
-        }
-
-        #endregion
-
-        #region Requests
-
-        public virtual void InvokeAtManager(Action action)
-        {
-            lock (Lock)
-            {
-                action();
-            }
-        }
-
-        public virtual void Quit()
-        {
-            lock (Lock)
-            {
-                MessageMarker.Clear();
-                MessageRecievers.Clear();
             }
         }
 

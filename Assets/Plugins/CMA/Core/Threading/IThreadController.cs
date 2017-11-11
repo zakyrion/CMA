@@ -14,19 +14,12 @@
 
 using System;
 
-namespace CMA.Messages
+namespace CMA.Core
 {
-    public interface IMessageManager
+    public interface IThreadController
     {
-        IMessage Message { get; }
-
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
-
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-
-        void Responce(IMessage message);
-        void Quit();
+        void Remove();
+        void Invoke(Action action);
+        void Invoke<T>(Action<T> action, T param);
     }
 }

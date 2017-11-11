@@ -27,7 +27,10 @@ namespace CMA
             get { return typeof(T).Name; }
         }
 
-        public abstract object Build();
+        public virtual object Build()
+        {
+            return default(T);
+        }
 
         public object Build(object param)
         {
@@ -53,7 +56,5 @@ namespace CMA
         {
             return Build((IMessage) param);
         }
-
-        public abstract object Build(IMessage message);
     }
 }

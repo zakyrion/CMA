@@ -10,23 +10,25 @@
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
-//   limitations under the License.
+//   limitations under the License.using System.Collections;
 
-using System;
-
-namespace CMA.Messages
+namespace CMA
 {
-    public interface IMessageManager
+    public interface IAdress
     {
-        IMessage Message { get; }
+        int Parts { get; }
+        string this[int index] { get; }
+        string LastPart { get; }
+        string AdressFull { get; }
 
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
+        bool Contains(IAdress adress);
+        bool ContainsFirstPart(IAdress adress);
+        bool Contains(string adress);
 
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
+        int ContainsParts(IAdress adress);
 
-        void Responce(IMessage message);
-        void Quit();
+        void ChangeAdress(string newAdress);
+        void AddAdressToBack(string adressPart);
+        void AddAdressToForward(string adressPart);
     }
 }

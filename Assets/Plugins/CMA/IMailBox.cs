@@ -10,23 +10,21 @@
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
-//   limitations under the License.
+//   limitations under the License.using System.Collections;
 
-using System;
+using System.Collections.Generic;
+using CMA.Messages;
 
-namespace CMA.Messages
+namespace CMA
 {
-    public interface IMessageManager
+    public interface IMailBox
     {
-        IMessage Message { get; }
+        IMailBox Parent { get; set; }
+        List<IMailBox> Children { get; }
+        IAdress Adress { get; }
 
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
-
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-
-        void Responce(IMessage message);
-        void Quit();
+        void SendMail(IMessage message);
+        void AddChild(IMailBox mailBox);
+        void RemoveChild(IMailBox mailBox);
     }
 }

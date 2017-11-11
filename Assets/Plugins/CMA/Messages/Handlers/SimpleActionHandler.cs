@@ -16,17 +16,24 @@ using System;
 
 namespace CMA.Messages
 {
-    public interface IMessageManager
+    public class SimpleActionHandler<T> : ISimpleActionHandler
     {
-        IMessage Message { get; }
+        private readonly Action<T> _action;
+        private readonly object _lock = new object();
+        private readonly T _param;
 
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
+        public SimpleActionHandler(Action<T> action, T param)
+        {
+            _action = action;
+            _param = param;
+        }
 
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-
-        void Responce(IMessage message);
-        void Quit();
+        public void Invoke()
+        {
+            lock (_lock)
+            {
+                _action?.Invoke(_param);
+            }
+        }
     }
 }

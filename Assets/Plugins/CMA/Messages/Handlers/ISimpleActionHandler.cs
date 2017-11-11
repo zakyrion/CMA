@@ -12,21 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
 namespace CMA.Messages
 {
-    public interface IMessageManager
+    public interface ISimpleActionHandler
     {
-        IMessage Message { get; }
-
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
-
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-
-        void Responce(IMessage message);
-        void Quit();
+        void Invoke();
     }
 }

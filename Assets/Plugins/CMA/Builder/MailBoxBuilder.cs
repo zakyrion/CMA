@@ -12,21 +12,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
-namespace CMA.Messages
+namespace CMA.Core
 {
-    public interface IMessageManager
+    internal class MailBoxBuilder : Builder<IMailBox, string>
     {
-        IMessage Message { get; }
+        public override object Build(string param)
+        {
+            //TODO Create Web MailBoxes
 
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
-
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-
-        void Responce(IMessage message);
-        void Quit();
+            return new MailBox(new Adress(param));
+        }
     }
 }

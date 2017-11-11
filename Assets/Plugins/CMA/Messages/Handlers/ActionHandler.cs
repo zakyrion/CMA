@@ -19,22 +19,53 @@ namespace CMA.Messages
 {
     public class ActionHandler<T> : IActionHandler
     {
-        private readonly Action<T> _action;
+        private readonly Action<T> _actionParams;
 
         public ActionHandler(Action<T> action)
+        {
+            _actionParams = action;
+        }
+
+        public void Invoke(object obj = null)
+        {
+            try
+            {
+                if (_actionParams != null)
+                {
+                    if (obj == null)
+                        Debug.Log("Obj Null");
+
+                    _actionParams((T) obj);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"Try cast to:{typeof(T)} but Type is:{obj.GetType()}");
+                throw;
+            }
+        }
+    }
+
+    public class ActionHandler : IActionHandler
+    {
+        private readonly Action _action;
+
+        public ActionHandler(Action action)
         {
             _action = action;
         }
 
-        public void Invoke(IMessageManager manager, object obj)
+        public void Invoke(object obj = null)
         {
-            if (obj == null)
+            try
             {
-                Debug.Log("Obj Null");
+                _action();
             }
-
-            if (_action != null)
-                manager.InvokeAtManager(() => _action((T) obj));
+            catch (Exception e)
+            {
+                Debug.Log(e);
+                throw;
+            }
         }
     }
 }

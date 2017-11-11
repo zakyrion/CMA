@@ -14,360 +14,173 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using CMA.Markers;
+using CMA.Core;
 using CMA.Messages;
 
 namespace CMA
 {
-    public static class ActorId
+    public class Actor : IActor
     {
-        private static long _currentId = long.MinValue;
+        private readonly List<IMessage> _forSend = new List<IMessage>();
+        private int _id;
+        protected Dictionary<IRespounceCode, IActionHandler> Actions = new Dictionary<IRespounceCode, IActionHandler>();
 
-        public static long CurrentId
+        protected Func<IMessage[]> MessagesRequest;
+        protected IThreadController ThreadController;
+
+        public Actor()
         {
-            get { return Interlocked.Increment(ref _currentId); }
-        }
-    }
-
-    public class Actor<K> : IKeyActor<K>
-    {
-        protected Dictionary<long, IActor> Cache = new Dictionary<long, IActor>();
-
-        protected List<IActor> Childs = new List<IActor>();
-        protected Dictionary<string, IKeyStorage> KeyCache = new Dictionary<string, IKeyStorage>();
-        protected object Lock = new object();
-
-        public Actor(K key)
-        {
-            Id = ActorId.CurrentId;
-            Key = key;
-            Manager = new ThreadPoolMessageManager();
-            Manager.TraceMarker = GetType().ToString();
-            KeyType = typeof(K).ToString();
+            ThreadController = new ThreadPoolController();
+            Manager = new MessageManager(ThreadController);
 
             Subscribe();
         }
 
-        public Actor(K key, IMessageManager manager)
+        public Actor(IThreadController threadController)
         {
-            Id = ActorId.CurrentId;
-            Key = key;
-            Manager = manager;
-            Manager.TraceMarker = GetType().ToString();
-            KeyType = typeof(K).ToString();
+            ThreadController = threadController;
+            Manager = new MessageManager(ThreadController);
 
             Subscribe();
         }
 
-        public object CustomKey { get; protected set; }
+        protected int RespounceId => _id++;
 
         public IMessageManager Manager { get; protected set; }
-        public IMarker Marker { get; protected set; }
-        public long Id { get; protected set; }
-        public IActor Owner { get; protected set; }
-        public object Key { get; protected set; }
-        public string KeyType { get; protected set; }
-        protected IMessage Message { get { return Manager.Message; } }
+        public IMailBox MailBox { get; protected set; }
 
-        public virtual void OnAdd(IActor owner)
+        public void CheckMailBox()
         {
-            if (Owner == null)
-                Owner = owner;
+            ThreadController.Invoke(CheckMailBoxHandler);
         }
 
-        public virtual void OnRemove()
+        public void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
         {
+            MessagesRequest = messagesRequest;
+            MailBox = mailBox;
+
+            CheckMailBox();
+
+            foreach (var message in _forSend)
+                MailBox.SendMail(message);
+
+            _forSend.Clear();
         }
 
         public virtual void Quit()
         {
+            ThreadController.Remove();
             Manager.Quit();
-            foreach (var child in Childs)
-                child.Quit();
         }
 
-        public virtual bool Contains(long id)
+        public virtual void Send(object data, string adress = "")
         {
-            lock (Lock)
+            var message = new Message(data);
+            message.Init(new Adress(adress), MailBox.Adress);
+
+            if (MailBox != null)
+                MailBox.SendMail(message);
+            else
+                _forSend.Add(message);
+        }
+
+        public virtual void Send(object data, Action action, string adress = "")
+        {
+            Message message;
+            if (action != null)
             {
-                return Cache.ContainsKey(id);
+                IActionHandler handler = new ActionHandler(action);
+                IRespounceCode code = new RespounceCode(RespounceId);
+
+                Actions.Add(code, handler);
+                message = new Message(data, code);
             }
-        }
-
-        public virtual bool Contains<T>(T id)
-        {
-            lock (Lock)
+            else
             {
-                var type = typeof(T).ToString();
-                return KeyCache.ContainsKey(type) && KeyCache[type].Contain(id);
-            }
-        }
-
-        public bool Contains(object key)
-        {
-            lock (Lock)
-            {
-                var type = key.GetType().ToString();
-                return KeyCache.ContainsKey(type) && KeyCache[type].Contain(key);
-            }
-        }
-
-        public bool Contains(IActor actor)
-        {
-            lock (Lock)
-            {
-                return Childs.Contains(actor);
-            }
-        }
-
-        public virtual void AddActor<T>(IKeyActor<T> actor)
-        {
-            lock (Lock)
-            {
-                Childs.Add(actor);
-                Cache.Add(actor.Id, actor);
-                actor.OnAdd(this);
-
-                var type = typeof(T).ToString();
-
-                if (!KeyCache.ContainsKey(type))
-                {
-                    var storage = new KeyStorage<T>();
-                    storage.AddKVP(actor.Key, actor);
-                    KeyCache.Add(type, storage);
-                }
-                else
-                {
-                    KeyCache[type].AddKVP(actor.Key, actor);
-                }
-            }
-        }
-
-        public void RemoveActor(long id)
-        {
-            lock (Lock)
-            {
-                var actor = Cache[id];
-                KeyCache[actor.KeyType].Remove(actor.Key);
-                Childs.Remove(actor);
-                Cache.Remove(id);
-                actor.OnRemove();
-            }
-        }
-
-        public void RemoveActor(IActor actor)
-        {
-            lock (Lock)
-            {
-                RemoveActor(actor.Id);
-            }
-        }
-
-        public void RemoveActor<T>(T key)
-        {
-            lock (Lock)
-            {
-                var keyType = typeof(T).ToString();
-                var actor = KeyCache[keyType].Get<IActor>(key);
-                KeyCache[keyType].Remove(key);
-                Childs.Remove(actor);
-                Cache.Remove(actor.Id);
-                actor.OnRemove();
-            }
-        }
-
-        public T GetActor<T>(long id)
-        {
-            lock (Lock)
-            {
-                return (T)Cache[id];
-            }
-        }
-
-        public IActor GetActor<T>(T key)
-        {
-            lock (Lock)
-            {
-                var result = default(IActor);
-                var type = typeof(T).ToString();
-
-                if (KeyCache.ContainsKey(type) && KeyCache[type].Contain(key))
-                    return KeyCache[type].Get<IActor>(key);
-
-                return result;
-            }
-        }
-
-        public R GetActor<R, K1>(K1 key)
-        {
-            lock (Lock)
-            {
-                var result = default(R);
-                var type = typeof(K1).ToString();
-
-                if (KeyCache.ContainsKey(type) && KeyCache[type].Contain(key))
-                    return KeyCache[type].Get<R>(key);
-
-                return result;
-            }
-        }
-
-        public T GetActor<T>()
-        {
-            lock (Lock)
-            {
-                foreach (var child in Childs)
-                    if (child is T)
-                        return (T)child;
+                message = new Message(data);
             }
 
-            return default(T);
+            message.Init(new Adress(adress), MailBox.Adress);
+
+            if (MailBox != null)
+                MailBox.SendMail(message);
+            else
+                _forSend.Add(message);
         }
 
-        public void Send(IMessage message)
+        public void Ask<TR>(Action<TR> action, string adress = "")
         {
-            if (message.MessageManager == null)
-                message.MessageManager = Manager;
+            IActionHandler handler = new ActionHandler<TR>(action);
+            IRespounceCode code = new RespounceCode(RespounceId);
 
-            Manager.InvokeAtManager(() => { SendMessageHide(message); });
+            Actions.Add(code, handler);
+
+            var request = new SimpleRequest<TR>(code);
+
+            request.Init(new Adress(adress), MailBox.Adress);
+
+            if (MailBox != null)
+                MailBox.SendMail(request);
+            else
+                _forSend.Add(request);
         }
 
-        public virtual void Send(object data, IActionHandler action = null)
+        public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
         {
-            var message = new Message(data) { MessageManager = Manager };
-            Manager.InvokeAtManager(() => { SendMessageHide(message); });
+            IActionHandler handler = new ActionHandler<TR>(action);
+            IRespounceCode code = new RespounceCode(RespounceId);
+
+            Actions.Add(code, handler);
+
+            var request = new Request<TR>(data, code);
+            request.Init(new Adress(adress), MailBox.Adress);
+
+            if (MailBox != null)
+                MailBox.SendMail(request);
+            else
+                _forSend.Add(request);
         }
 
-        public virtual void Send(object data, params IMarker[] markers)
+        public void Respounce(IMessage message, object data = null)
         {
-            var message = new Message(data) { MessageManager = Manager };
-            message.AddMarkers(markers);
-            Manager.InvokeAtManager(() => { SendMessageHide(message); });
+            var callback = new Message(new CallBack(message.RespounceCode, data));
+            callback.Init(message.BackAdress, MailBox.Adress);
+
+            if (MailBox != null)
+                MailBox.SendMail(callback);
+            else
+                _forSend.Add(callback);
         }
 
-        public virtual void Send(object data, IActionHandler action, params IMarker[] markers)
+        private void CheckMailBoxHandler()
         {
-            var message = new Message(data, action) { MessageManager = Manager };
-            message.AddMarkers(markers);
-            Manager.InvokeAtManager(() => { SendMessageHide(message); });
-        }
-
-        public void InvokeAt(Action action)
-        {
-            Manager.InvokeAtManager(action);
-        }
-
-        public K TypedKey
-        {
-            get { return (K)Key; }
-        }
-
-        protected void SendMessageHide(IMessage message)
-        {
-            if (!message.IsDone)
+            if (MessagesRequest != null)
             {
-                if (message.IsContainsActorId(Id))
-                    return;
-
-                message.AddActorId(Id);
-                message.AddTrace(GetType().ToString());
-
-                if (Manager.CanRespond(message))
-                {
+                var result = MessagesRequest();
+                foreach (var message in result)
                     Manager.Responce(message);
-                    return;
-                }
-
-                if (Manager.CanTransmit(message))
-                {
-                    Manager.Transmit(message);
-                    return;
-                }
-
-                var isSended = false;
-
-                foreach (var child in Childs)
-                    if (child.CanRespond(message))
-                    {
-                        child.Send(message);
-                        isSended = true;
-                    }
-
-                if (isSended)
-                    return;
-
-                foreach (var child in Childs)
-                    if (child.CanTransmit(message))
-                    {
-                        child.Send(message);
-                        isSended = true;
-                    }
-
-                if (isSended)
-                {
-                    if (Marker != null)
-                        message.AddMarkerForReturn(Marker);
-
-                    return;
-                }
-
-                if (Owner != null)
-                {
-                    if (Marker != null)
-                        message.AddMarkerForReturn(Marker);
-                    Owner.Send(message);
-                }
             }
         }
 
         protected virtual void Subscribe()
         {
-            
+            Receive<CallBack>(OnCallback);
         }
 
-        public virtual void Receive<T>(Action @delegate)
+        private void OnCallback(CallBack callBack, IMessage message1)
+        {
+            if (Actions.ContainsKey(callBack.Param1))
+                Actions[callBack.Param1].Invoke(callBack.Param2);
+        }
+
+        public virtual void Receive<T>(Action<IMessage> @delegate)
         {
             Manager.Receive<T>(@delegate);
         }
 
-        public virtual void Receive<T>(Action<T> @delegate)
+        public virtual void Receive<T>(Action<T, IMessage> @delegate)
         {
             Manager.Receive(@delegate);
-        }
-
-        protected void AddMarker<M>() where M : IMarker
-        {
-            var handler = new MessageMarkerHandler<M>((message, marker) =>
-            {
-                if (Contains(marker.ObjKey))
-                {
-                    marker.Check();
-                    KeyCache[marker.ObjKeyType].Get<IActor>(marker.ObjKey).Send(message);
-                }
-            });
-            Manager.AddMarker(handler);
-        }
-
-        protected void AddMarker<M>(MessageMarkerDelegate<IMessage, M> @delegate) where M : IMarker
-        {
-            var handler = new MessageMarkerHandler<M>(@delegate);
-            Manager.AddMarker(handler);
-        }
-
-        protected void RemoveMarker(IMessageMarkerHandler handler)
-        {
-            Manager.RemoveMarker(handler);
-        }
-
-        public bool CanRespond(IMessage message)
-        {
-            return Manager.CanRespond(message);
-        }
-
-        public bool CanTransmit(IMessage message)
-        {
-            return Manager.CanTransmit(message);
         }
     }
 }

@@ -16,6 +16,6 @@ namespace CMA.Messages
 {
     public interface IActionHandler
     {
-        void Invoke(IMessageManager manager, object obj);
+        void Invoke(object obj);
     }
 }

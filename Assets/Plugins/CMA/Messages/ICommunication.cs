@@ -13,22 +13,21 @@
 //   limitations under the License.
 
 using System.Collections.Generic;
-using CMA.Markers;
 
 namespace CMA.Messages
 {
     public interface ICommunication
     {
+        bool IsCheckFirstPath { get; }
+        bool IsAdressOver { get; }
         bool IsFaild { get; }
-        List<IMarker> ReturningMarkers { get; }
-        IMarker GetCurrentMarker();
-        void CheckMarker();
-        bool IsAllMarkersCheck();
-        bool IsContainsActorId(long id);
-        void AddMarkerForReturn(IMarker marker);
-        void AddMarker(IMarker marker);
-        void AddMarkers(IEnumerable<IMarker> markers);
-        void AddActorId(long id);
+        IAdress BackAdress { get; }
+        IAdress Adress { get; }
+        string CurrentAdressPart { get; }
+
+        void Init(IAdress adress, IAdress backAdress);
+        void PassCurrentAdressPart();
+
         void Fail();
         void AddTrace(string trace);
         List<string> Trace();
