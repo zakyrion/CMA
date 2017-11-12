@@ -31,9 +31,24 @@ namespace CMA.Messages
             BackAdress = backAdress;
         }
 
+        public void SetAdress(IAdress adress)
+        {
+            Adress = adress;
+        }
+
+        public void SetBackAdress(IAdress backAdress)
+        {
+            BackAdress = backAdress;
+        }
+
         public void PassCurrentAdressPart()
         {
             _index++;
+        }
+
+        public void PassAdressFull()
+        {
+            _index = Adress.Parts - 1;
         }
 
         public bool IsCheckFirstPath => _index > 0;

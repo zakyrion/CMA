@@ -11,9 +11,10 @@ namespace View
 
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
-
+        private int _id;
         public void Init(int id, float speed, Vector3 destination)
         {
+            _id = id;
             _speed = speed;
             _destination = destination;
             Main.Instance.AddActor(this, $"Main/AsteroidManager/{id}");
@@ -25,7 +26,7 @@ namespace View
             if (diff.magnitude < .1f && !_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Send(new Kill(), Adress);
+                Send(new AsteroidManager.DestroyAsteroid(_id), @"Main/AsteroidManager");
             }
             else
             {
@@ -38,7 +39,7 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Send(new Kill(), Adress);
+                Send(new AsteroidManager.DestroyAsteroid(_id), @"Main/AsteroidManager");
             }
         }
 

@@ -12,6 +12,10 @@ public class AsteroidManager : Actor
     private readonly Random _random = new Random();
     private bool _isStart;
 
+    public AsteroidManager() : base(new MainThreadController())
+    {
+    }
+
     protected override void Subscribe()
     {
         Receive<StartWithDificult>(OnStartWithDificult);
@@ -22,17 +26,14 @@ public class AsteroidManager : Actor
 
     private void OnGameOver(IMessage message)
     {
+        Debug.Log("Game Over");
         _isStart = false;
-        /*var childs = Childs.ToArray();
-        foreach (var child in childs)
-        {
-            child.Send(new Asteroid.Die());
-            RemoveActor(child);
-        }*/
+        Send(new Kill(), $"{Adress}/*");
     }
 
     private void OnStartWithDificult(StartWithDificult data, IMessage message)
     {
+        Debug.Log("OnStartGameWithDificult");
         _isStart = true;
         var count = (int) data.Data;
 
@@ -43,39 +44,25 @@ public class AsteroidManager : Actor
 
     private void NeedToCreateAsteroid(object state, bool timedOut)
     {
-        Send(new CreateAsteroid());
+        ThreadController.Invoke<IMessage>(OnCreateAsteroid, null);
     }
 
     private void OnDestroyAsteroid(DestroyAsteroid data, IMessage message)
     {
-        /*var asteroid = GetActor<IActor, int>(data.Data);
-        if (asteroid != null)
-        {
-            asteroid.Send(new Asteroid.Die());
-            RemoveActor(asteroid);
+        Send(new Kill(), $"{Adress}/{data.Data}");
 
-            ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
-                _random.Next(200, 1000), true);
-        }*/
+        ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
+            _random.Next(200, 1000), true);
     }
 
     private void OnCreateAsteroid(IMessage message)
     {
-        /*if (_isStart)
-        {
-            var request = new SimpleRequest<Rect>(rect =>
+        if (_isStart)
+            Ask<Rect>(rect =>
             {
-                Main.Instance.InvokeAt(() =>
-                {
-                    if (_isStart)
-                    {
-                        var asteroid = Core.Get<Asteroid>(new BuildAsteroidMessage(rect));
-                        AddActor(asteroid);
-                    }
-                });
+                if (_isStart)
+                    Core.Get<Asteroid>(new BuildAsteroidMessage(rect));
             });
-            Send(request);
-        }*/
     }
 
     public class CreateAsteroid

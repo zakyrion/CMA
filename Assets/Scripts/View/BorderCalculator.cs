@@ -25,6 +25,7 @@ namespace View
 
         private void OnRectRequest(IMessage message)
         {
+            Debug.Log($"Catch OnRectRequest Adress:{message.Adress}, Back Adress: {message.BackAdress}");
             Respounce(message, _border);
         }
 

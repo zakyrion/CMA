@@ -1,4 +1,6 @@
-﻿using CMA;
+﻿using System;
+using CMA;
+using CMA.Messages;
 using Model;
 using UnityEngine;
 
@@ -18,10 +20,16 @@ namespace View
             Main.Instance.AddActor(this, "Main/Ship");
         }
 
-        // Use this for initialization
-        protected override void Start()
+        public override void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
         {
-            Ask<Rect>(rect => { _border = rect; });
+            base.OnAdd(mailBox, messagesRequest);
+
+            Debug.Log("Ask rect");
+            Ask<Rect>(rect =>
+            {
+                Debug.Log("Catch Rect Responce");
+                _border = rect;
+            });
         }
 
         // Update is called once per frame

@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using UnityEngine;
 
 namespace CMA.Messages
 {
@@ -32,7 +33,15 @@ namespace CMA.Messages
         {
             lock (_lock)
             {
-                _action?.Invoke(_param);
+                try
+                {
+                    _action?.Invoke(_param);
+
+                }
+                catch (Exception e)
+                {
+                    Debug.Log($"SimpleActionHandler exception: {e}");
+                }
             }
         }
     }

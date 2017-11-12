@@ -1,4 +1,5 @@
-﻿using Model;
+﻿using System.Collections;
+using Model;
 using UnityEngine;
 
 namespace View
@@ -8,7 +9,14 @@ namespace View
         // Use this for initialization
         private void Start()
         {
-            Debug.Log("Main: " + Main.Instance);
+            Debug.Log("Start: " + Main.Instance);
+            StartCoroutine(InitGame());
+        }
+
+        IEnumerator InitGame()
+        {
+            yield return new WaitForSeconds(1f);
+            Debug.Log("Init Game: ");
             Main.Instance.Actor.Send(new Main.InitGame());
         }
     }

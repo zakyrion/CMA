@@ -14,8 +14,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using CMA.Messages;
+using Debug = UnityEngine.Debug;
 
 namespace CMA.Core
 {

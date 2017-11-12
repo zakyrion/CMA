@@ -1,11 +1,17 @@
 ﻿using CMA;
+using CMA.Core;
 using CMA.Messages;
 using Model;
 using UnityEngine;
+using View;
 
 public class BulletManager : Actor
 {
     private bool _isStart;
+
+    public BulletManager() : base(new MainThreadController())
+    {
+    }
 
     protected override void Subscribe()
     {
@@ -16,33 +22,24 @@ public class BulletManager : Actor
 
     private void OnStartGameWithDificult(IMessage message)
     {
+        Debug.Log("OnStartGameWithDificult");
         _isStart = true;
     }
 
     private void OnCreateBullet(CreateBullet data, IMessage message)
     {
         if (_isStart)
-        {
-            /*var request = new SimpleRequest<Rect>(rect =>
+            Ask<Rect>(rect =>
             {
                 if (_isStart)
-                    Main.Instance.InvokeAt(
-                        () => { AddActor(Core.Get<Bullet>(new BuildBulletMessage(data.Data, rect))); });
-            });
-
-            Send(request);*/
-        }
+                    Core.Get<Bullet>(new BuildBulletMessage(data.Data, rect));
+            },"Main/BorderCalculator");
     }
 
     private void OnGameOver(IMessage message)
     {
         _isStart = false;
-        /*var childs = Childs.ToArray();
-        foreach (var child in childs)
-        {
-            child.Send(new Bullet.Die());
-            RemoveActor(child);
-        }*/
+        Send(new Kill(), $"{Adress}/*");
     }
 
     public class CreateBullet : Container<Vector3>

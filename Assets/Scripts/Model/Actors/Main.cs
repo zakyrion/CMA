@@ -2,6 +2,7 @@
 using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
+using View;
 
 namespace Model
 {
@@ -25,6 +26,10 @@ namespace Model
             Instance.AddActor(bulletManager, "Main/BulletManager");
         }
 
+        public Main() : base(new MainThreadController())
+        {
+        }
+
         public static MailBox Instance { get; set; }
 
         protected override void Subscribe()
@@ -37,23 +42,17 @@ namespace Model
         private void OnGameOver(IMessage message)
         {
             Send(new UIService.ShowGameOver());
-
-            /*foreach (var child in Childs)
-                child.Send(Message);*/
         }
 
         private void OnStartGameWithDificult(IMessage message)
         {
             Debug.Log("OnStartGameWithDificult");
-            /*var request = new SimpleRequest<Rect>(rect =>
+
+            Ask<Rect>(rect =>
             {
                 Debug.Log("Catch Rect Responce");
-                AddActor(Core.Get<Ship>(new BuildShipMessage(rect)));
-            });
-            Send(request);*/
-
-            /*foreach (var child in Childs)
-                child.Send(Message);*/
+                Core.Get<Ship>(new BuildShipMessage(rect));
+            }, "Main/BorderCalculator");
         }
 
         private void OnInitGame(IMessage message)

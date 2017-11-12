@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using CMA.Core;
 using CMA.Messages;
 
 namespace CMA
@@ -20,6 +21,7 @@ namespace CMA
     public interface IActor
     {
         IMailBox MailBox { get; }
+        IThreadController ThreadController { get; }
         string Adress { get; }
 
         void CheckMailBox();

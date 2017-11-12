@@ -26,7 +26,10 @@ namespace CMA.Messages
         string CurrentAdressPart { get; }
 
         void Init(IAdress adress, IAdress backAdress);
+        void SetAdress(IAdress adress);
+        void SetBackAdress(IAdress backAdress);
         void PassCurrentAdressPart();
+        void PassAdressFull();
 
         void Fail();
         void AddTrace(string trace);

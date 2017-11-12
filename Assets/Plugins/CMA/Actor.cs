@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using CMA.Core;
 using CMA.Messages;
+using UnityEngine;
 
 namespace CMA
 {
@@ -26,7 +27,6 @@ namespace CMA
         protected Dictionary<IRespounceCode, IActionHandler> Actions = new Dictionary<IRespounceCode, IActionHandler>();
 
         protected Func<IMessage[]> MessagesRequest;
-        protected IThreadController ThreadController;
 
         public Actor()
         {
@@ -50,11 +50,12 @@ namespace CMA
             Subscribe();
         }
 
-        public string Adress => MailBox?.Adress.AdressFull;
-
         protected int RespounceId => _id++;
 
         public IMessageManager Manager { get; protected set; }
+
+        public IThreadController ThreadController { get; protected set; }
+        public string Adress => MailBox?.Adress.AdressFull;
         public IMailBox MailBox { get; protected set; }
 
         public void CheckMailBox()
@@ -70,7 +71,12 @@ namespace CMA
             CheckMailBox();
 
             foreach (var message in _forSend)
+            {
+                if (string.IsNullOrEmpty(mailBox.Adress.AdressFull))
+                    Debug.Log($"{GetType()}");
+                message.SetBackAdress(MailBox.Adress);
                 MailBox.SendMail(message);
+            }
 
             _forSend.Clear();
         }
@@ -84,12 +90,17 @@ namespace CMA
         public virtual void Send(object data, string adress = "")
         {
             var message = new Message(data);
-            message.Init(new Adress(adress), MailBox.Adress);
 
             if (MailBox != null)
+            {
+                message.Init(new Adress(adress), MailBox.Adress);
                 MailBox.SendMail(message);
+            }
             else
+            {
+                message.SetAdress(new Adress(adress));
                 _forSend.Add(message);
+            }
         }
 
         public virtual void Send(object data, Action action, string adress = "")
@@ -108,12 +119,16 @@ namespace CMA
                 message = new Message(data);
             }
 
-            message.Init(new Adress(adress), MailBox.Adress);
-
             if (MailBox != null)
+            {
+                message.Init(new Adress(adress), MailBox.Adress);
                 MailBox.SendMail(message);
+            }
             else
+            {
+                message.SetAdress(new Adress(adress));
                 _forSend.Add(message);
+            }
         }
 
         public void Ask<TR>(Action<TR> action, string adress = "")
@@ -125,12 +140,16 @@ namespace CMA
 
             var request = new SimpleRequest<TR>(code);
 
-            request.Init(new Adress(adress), MailBox.Adress);
-
             if (MailBox != null)
+            {
+                request.Init(new Adress(adress), MailBox.Adress);
                 MailBox.SendMail(request);
+            }
             else
+            {
+                request.SetAdress(new Adress(adress));
                 _forSend.Add(request);
+            }
         }
 
         public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
@@ -141,26 +160,43 @@ namespace CMA
             Actions.Add(code, handler);
 
             var request = new Request<TR>(data, code);
-            request.Init(new Adress(adress), MailBox.Adress);
 
             if (MailBox != null)
+            {
+                request.Init(new Adress(adress), MailBox.Adress);
                 MailBox.SendMail(request);
+            }
             else
+            {
+                request.SetAdress(new Adress(adress));
                 _forSend.Add(request);
+            }
         }
 
         public void Respounce(IMessage message, object data = null)
         {
+            Debug.Log($"At: {Adress} Respounce: {message.GetKey()} by Adress: {message.BackAdress}");
+
             var callback = new Message(new CallBack(message.RespounceCode, data));
-            callback.Init(message.BackAdress, MailBox.Adress);
 
             if (MailBox != null)
+            {
+                callback.Init(message.BackAdress, MailBox.Adress);
                 MailBox.SendMail(callback);
+            }
             else
+            {
+                callback.SetAdress(message.BackAdress);
                 _forSend.Add(callback);
+            }
         }
 
         private void OnKill(IMessage obj)
+        {
+            ThreadController.Invoke(OnKillHandler);
+        }
+
+        private void OnKillHandler()
         {
             Quit();
         }
@@ -179,8 +215,10 @@ namespace CMA
         {
         }
 
-        private void OnCallback(CallBack callBack, IMessage message1)
+        internal virtual void OnCallback(CallBack callBack, IMessage message)
         {
+            Debug.Log(
+                $"At: {Adress} To: {message.Adress} Catch Callback: Hash {callBack.Param1.GetHashCode()} Data: {callBack.Param2}");
             if (Actions.ContainsKey(callBack.Param1))
                 Actions[callBack.Param1].Invoke(callBack.Param2);
         }

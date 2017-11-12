@@ -24,6 +24,7 @@ namespace CMA
         private bool _isQuit;
         protected Actor Actor;
 
+        public IThreadController ThreadController => Actor.ThreadController;
         public string Adress => Actor.Adress;
 
         public IMailBox MailBox => Actor.MailBox;
@@ -33,7 +34,7 @@ namespace CMA
             Actor.CheckMailBox();
         }
 
-        public void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
+        public virtual void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
         {
             Actor.OnAdd(mailBox, messagesRequest);
         }
@@ -91,7 +92,18 @@ namespace CMA
         protected virtual void Awake()
         {
             Actor = new Actor(new MainThreadController());
+            Receive<Kill>(OnKill);
             Subscribe();
+        }
+
+        private void OnKill(IMessage obj)
+        {
+            Actor.ThreadController.Invoke(OnKillHandler);
+        }
+
+        private void OnKillHandler()
+        {
+            Quit();
         }
 
         protected virtual void Start()

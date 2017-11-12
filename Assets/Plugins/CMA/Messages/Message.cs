@@ -53,6 +53,7 @@ namespace CMA.Messages
         public void ShowTrace()
         {
             Debug.Log("Message: " + GetKey());
+            Debug.Log("Adress : " + Adress.AdressFull);
             foreach (var trace in Traces)
                 Debug.Log("Trace: " + trace);
         }

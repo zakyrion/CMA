@@ -25,6 +25,8 @@ namespace CMA
         bool Contains(IAdress adress);
         bool ContainsFirstPart(IAdress adress);
         bool Contains(string adress);
+        bool IsDestination(IAdress adress);
+        bool IsDestination(string adress);
 
         int ContainsParts(IAdress adress);
 
