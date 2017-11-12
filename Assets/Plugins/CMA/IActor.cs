@@ -20,6 +20,7 @@ namespace CMA
     public interface IActor
     {
         IMailBox MailBox { get; }
+        string Adress { get; }
 
         void CheckMailBox();
         void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest);

@@ -29,7 +29,6 @@ namespace Model
 
             shipGO.transform.position = new Vector3(param.Borders.xMin + 1f, 0f, 0f);
             var ship = shipGO.GetComponent<Ship>();
-            ship.Init("Ship");
 
             return ship;
         }

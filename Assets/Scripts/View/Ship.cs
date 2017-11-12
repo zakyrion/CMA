@@ -1,11 +1,10 @@
 ﻿using CMA;
-using CMA.Messages;
 using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Ship : MonoActor<string>
+    public class Ship : MonoActor
     {
         private Rect _border;
         [SerializeField] private float _cooldown;
@@ -13,11 +12,16 @@ namespace View
         [SerializeField] private float _speed;
         private float _timer;
 
-        // Use this for initialization
-        private void Start()
+        protected override void Awake()
         {
-            var requset = new SimpleRequest<Rect>(rect => { _border = rect; });
-            Send(requset);
+            base.Awake();
+            Main.Instance.AddActor(this, "Main/Ship");
+        }
+
+        // Use this for initialization
+        protected override void Start()
+        {
+            Ask<Rect>(rect => { _border = rect; });
         }
 
         // Update is called once per frame
@@ -53,11 +57,6 @@ namespace View
                 Send(new Main.GameOver());
                 Destroy(gameObject);
             }
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
         }
 
         protected override void Subscribe()

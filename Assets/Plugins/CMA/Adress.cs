@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.using System.Collections;
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -28,9 +27,14 @@ namespace CMA
         }
 
         public int Parts => _splitedAdress.Count;
-        public string this[int index] => _splitedAdress != null && _splitedAdress.Count < index ? _splitedAdress[index] : null;
+
+        public string this[int index] => _splitedAdress != null && _splitedAdress.Count < index
+            ? _splitedAdress[index]
+            : null;
+
         public string LastPart => _splitedAdress?[_splitedAdress.Count - 1];
         public string AdressFull { get; private set; }
+        public bool ForChildren { get; protected set; }
 
         public bool Contains(IAdress adress)
         {
@@ -54,12 +58,12 @@ namespace CMA
             var findedIndex = 0;
 
             for (var i = 0; i < adress.Parts; i++)
-                for (var j = findedIndex; j < Parts; j++)
-                    if (this[j] == adress[i])
-                    {
-                        findedIndex = j;
-                        result = i;
-                    }
+            for (var j = findedIndex; j < Parts; j++)
+                if (this[j] == adress[i])
+                {
+                    findedIndex = j;
+                    result = i;
+                }
 
             return result;
         }
@@ -124,6 +128,12 @@ namespace CMA
 
                 foreach (var str in subStrs)
                     _splitedAdress.Add(str);
+
+                if (_splitedAdress[_splitedAdress.Count - 1] == "*")
+                    ForChildren = true;
+
+                _splitedAdress.RemoveAt(_splitedAdress.Count - 1);
+                AdressFull = string.Join("/", _splitedAdress);
             }
         }
     }

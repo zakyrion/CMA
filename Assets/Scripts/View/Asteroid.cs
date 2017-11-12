@@ -1,9 +1,11 @@
 ﻿using CMA;
+using CMA.Messages;
+using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Asteroid : MonoActor<int>
+    public class Asteroid : MonoActor
     {
         [SerializeField] private Vector3 _destination;
 
@@ -12,9 +14,9 @@ namespace View
 
         public void Init(int id, float speed, Vector3 destination)
         {
-            Init(id);
             _speed = speed;
             _destination = destination;
+            Main.Instance.AddActor(this, $"Main/AsteroidManager/{id}");
         }
 
         private void Update()
@@ -23,7 +25,7 @@ namespace View
             if (diff.magnitude < .1f && !_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Send(new AsteroidManager.DestroyAsteroid(TypedKey));
+                Send(new Kill(), Adress);
             }
             else
             {
@@ -36,23 +38,18 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Send(new AsteroidManager.DestroyAsteroid(TypedKey));
+                Send(new Kill(), Adress);
             }
-        }
-
-        private void OnDie()
-        {
-            Destroy(gameObject);
         }
 
         protected override void Subscribe()
         {
-            Receive<Transform>(() => Message.Done(transform));
-            Receive<Die>(OnDie);
+            Receive<Transform>(OnTransformRequest);
         }
 
-        public class Die
+        private void OnTransformRequest(IMessage message)
         {
+            Respounce(message, transform);
         }
     }
 }

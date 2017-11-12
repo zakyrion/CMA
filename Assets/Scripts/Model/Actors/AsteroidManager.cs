@@ -1,51 +1,40 @@
 ﻿using System.Threading;
 using CMA;
 using CMA.Core;
-using CMA.Markers;
 using CMA.Messages;
 using Model;
 using UnityEngine;
 using View;
 using Random = System.Random;
 
-public class AsteroidManager : Actor<string>
+public class AsteroidManager : Actor
 {
     private readonly Random _random = new Random();
     private bool _isStart;
 
-    public AsteroidManager() : base("AsteroidManager")
-    {
-    }
-
-    public AsteroidManager(string key, IMessageManager manager) : base(key, manager)
-    {
-    }
-
     protected override void Subscribe()
     {
-        AddMarker<AsteroidMarker>();
-
         Receive<StartWithDificult>(OnStartWithDificult);
         Receive<CreateAsteroid>(OnCreateAsteroid);
         Receive<DestroyAsteroid>(OnDestroyAsteroid);
         Receive<Main.GameOver>(OnGameOver);
     }
 
-    private void OnGameOver(Main.GameOver message)
+    private void OnGameOver(IMessage message)
     {
         _isStart = false;
-        var childs = Childs.ToArray();
+        /*var childs = Childs.ToArray();
         foreach (var child in childs)
         {
             child.Send(new Asteroid.Die());
             RemoveActor(child);
-        }
+        }*/
     }
 
-    private void OnStartWithDificult(StartWithDificult message)
+    private void OnStartWithDificult(StartWithDificult data, IMessage message)
     {
         _isStart = true;
-        var count = (int) message.Data;
+        var count = (int) data.Data;
 
         for (var i = 0; i < count; i++)
             ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
@@ -57,9 +46,9 @@ public class AsteroidManager : Actor<string>
         Send(new CreateAsteroid());
     }
 
-    private void OnDestroyAsteroid(DestroyAsteroid message)
+    private void OnDestroyAsteroid(DestroyAsteroid data, IMessage message)
     {
-        var asteroid = GetActor<IActor, int>(message.Data);
+        /*var asteroid = GetActor<IActor, int>(data.Data);
         if (asteroid != null)
         {
             asteroid.Send(new Asteroid.Die());
@@ -67,12 +56,12 @@ public class AsteroidManager : Actor<string>
 
             ThreadPool.RegisterWaitForSingleObject(new AutoResetEvent(true), NeedToCreateAsteroid, null,
                 _random.Next(200, 1000), true);
-        }
+        }*/
     }
 
-    private void OnCreateAsteroid(CreateAsteroid message)
+    private void OnCreateAsteroid(IMessage message)
     {
-        if (_isStart)
+        /*if (_isStart)
         {
             var request = new SimpleRequest<Rect>(rect =>
             {
@@ -86,14 +75,7 @@ public class AsteroidManager : Actor<string>
                 });
             });
             Send(request);
-        }
-    }
-
-    public class AsteroidMarker : Marker<int>
-    {
-        public AsteroidMarker(int key) : base(key)
-        {
-        }
+        }*/
     }
 
     public class CreateAsteroid

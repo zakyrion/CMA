@@ -20,6 +20,7 @@ namespace CMA
         string this[int index] { get; }
         string LastPart { get; }
         string AdressFull { get; }
+        bool ForChildren { get; }
 
         bool Contains(IAdress adress);
         bool ContainsFirstPart(IAdress adress);

@@ -21,7 +21,10 @@ namespace CMA
 {
     public abstract class MonoActor : MonoBehaviour, IActor
     {
+        private bool _isQuit;
         protected Actor Actor;
+
+        public string Adress => Actor.Adress;
 
         public IMailBox MailBox => Actor.MailBox;
 
@@ -37,7 +40,12 @@ namespace CMA
 
         public void Quit()
         {
-            Actor.Quit();
+            if (!_isQuit)
+            {
+                _isQuit = true;
+                Actor.Quit();
+                Destroy(gameObject);
+            }
         }
 
         public void Send(object data, string adress = "")
@@ -66,6 +74,16 @@ namespace CMA
         }
 
         protected abstract void Subscribe();
+
+        public virtual void Receive<T>(Action<IMessage> @delegate)
+        {
+            Actor.Receive<T>(@delegate);
+        }
+
+        public virtual void Receive<T>(Action<T, IMessage> @delegate)
+        {
+            Actor.Receive(@delegate);
+        }
 
 
         #region Unity

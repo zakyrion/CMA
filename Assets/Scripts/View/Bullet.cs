@@ -1,9 +1,11 @@
 ﻿using CMA;
+using CMA.Messages;
+using Model;
 using UnityEngine;
 
 namespace View
 {
-    public class Bullet : MonoActor<int>
+    public class Bullet : MonoActor
     {
         private Rect _borders;
         private bool _isSendDestroy;
@@ -16,13 +18,13 @@ namespace View
             if (!_isSendDestroy && transform.position.x > _borders.xMax + 1)
             {
                 _isSendDestroy = true;
-                Send(new BulletManager.DestroyBullet(TypedKey));
+                Send(new Kill(), Adress);
             }
         }
 
         public void Init(int id, Rect borders)
         {
-            Init(id);
+            Main.Instance.AddActor(this, $"Main/BulletManager/{id}");
             _borders = borders;
         }
 
@@ -31,21 +33,11 @@ namespace View
             if (!_isSendDestroy)
             {
                 _isSendDestroy = true;
-                Send(new BulletManager.DestroyBullet(TypedKey));
+                Send(new Kill(), Adress);
             }
         }
 
-        private void OnDie()
-        {
-            Destroy(gameObject);
-        }
-
         protected override void Subscribe()
-        {
-            Receive<Die>(OnDie);
-        }
-
-        public class Die
         {
         }
     }

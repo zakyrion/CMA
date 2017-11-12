@@ -33,6 +33,9 @@ namespace CMA
             ThreadController = new ThreadPoolController();
             Manager = new MessageManager(ThreadController);
 
+            Receive<CallBack>(OnCallback);
+            Receive<Kill>(OnKill);
+
             Subscribe();
         }
 
@@ -41,8 +44,13 @@ namespace CMA
             ThreadController = threadController;
             Manager = new MessageManager(ThreadController);
 
+            Receive<CallBack>(OnCallback);
+            Receive<Kill>(OnKill);
+
             Subscribe();
         }
+
+        public string Adress => MailBox?.Adress.AdressFull;
 
         protected int RespounceId => _id++;
 
@@ -152,6 +160,11 @@ namespace CMA
                 _forSend.Add(callback);
         }
 
+        private void OnKill(IMessage obj)
+        {
+            Quit();
+        }
+
         private void CheckMailBoxHandler()
         {
             if (MessagesRequest != null)
@@ -164,7 +177,6 @@ namespace CMA
 
         protected virtual void Subscribe()
         {
-            Receive<CallBack>(OnCallback);
         }
 
         private void OnCallback(CallBack callBack, IMessage message1)

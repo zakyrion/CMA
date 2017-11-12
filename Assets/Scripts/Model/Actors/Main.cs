@@ -2,11 +2,10 @@
 using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
-using View;
 
 namespace Model
 {
-    public class Main : Actor<string>
+    public class Main : Actor
     {
         static Main()
         {
@@ -14,20 +13,19 @@ namespace Model
             Core.SubscribeBuilder(new ShipBuilder());
             Core.SubscribeBuilder(new BulletBuilder());
 
-            Instance = new Main();
-            Instance.AddActor(new AsteroidManager());
-            Instance.AddActor(new BulletManager());
+            var actor = new Main();
+
+            Instance = new MailBox(new Adress("Main"));
+            Instance.AddActor(actor);
+
+            var asteroidManager = new AsteroidManager();
+            Instance.AddActor(asteroidManager, "Main/AsteroidManager");
+
+            var bulletManager = new BulletManager();
+            Instance.AddActor(bulletManager, "Main/BulletManager");
         }
 
-        public Main() : base("Main", new UpdatedMessageManager())
-        {
-        }
-
-        public Main(string key, IMessageManager manager) : base(key, manager)
-        {
-        }
-
-        public static Main Instance { get; set; }
+        public static MailBox Instance { get; set; }
 
         protected override void Subscribe()
         {
@@ -36,29 +34,29 @@ namespace Model
             Receive<GameOver>(OnGameOver);
         }
 
-        private void OnGameOver()
+        private void OnGameOver(IMessage message)
         {
             Send(new UIService.ShowGameOver());
 
-            foreach (var child in Childs)
-                child.Send(Message);
+            /*foreach (var child in Childs)
+                child.Send(Message);*/
         }
 
-        private void OnStartGameWithDificult()
+        private void OnStartGameWithDificult(IMessage message)
         {
             Debug.Log("OnStartGameWithDificult");
-            var request = new SimpleRequest<Rect>(rect =>
+            /*var request = new SimpleRequest<Rect>(rect =>
             {
                 Debug.Log("Catch Rect Responce");
                 AddActor(Core.Get<Ship>(new BuildShipMessage(rect)));
             });
-            Send(request);
+            Send(request);*/
 
-            foreach (var child in Childs)
-                child.Send(Message);
+            /*foreach (var child in Childs)
+                child.Send(Message);*/
         }
 
-        private void OnInitGame(InitGame message)
+        private void OnInitGame(IMessage message)
         {
             Debug.Log("Catch: OnInitGame");
             Send(new UIService.ShowDificultUI());

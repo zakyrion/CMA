@@ -1,18 +1,20 @@
 ﻿using CMA;
+using CMA.Messages;
 using Model;
 using UnityEngine;
 
 namespace View
 {
     [RequireComponent(typeof(Camera))]
-    public class BorderCalculator : MonoActor<string>
+    public class BorderCalculator : MonoActor
     {
         private Rect _border;
 
         protected override void Awake()
         {
-            Init("BorderCalculator");
-            Main.Instance.AddActor(this);
+            base.Awake();
+
+            Main.Instance.AddActor(this, "Main/BorderCalculator");
 
             var camera = GetComponent<Camera>();
             var height = 2.0f * transform.position.y * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
@@ -21,9 +23,9 @@ namespace View
             _border = new Rect(width / -2, height / -2, width, height);
         }
 
-        private void OnRectRequest()
+        private void OnRectRequest(IMessage message)
         {
-            Message.Done(_border);
+            Respounce(message, _border);
         }
 
         protected override void Subscribe()

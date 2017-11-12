@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.using System.Collections;
 
+using System;
 using System.Collections.Generic;
 using CMA.Core;
 using CMA.Messages;
@@ -20,7 +21,6 @@ namespace CMA
 {
     public class MailBox : IMailBox
     {
-        protected IActor Actor;
         protected Queue<IMessage> ForActor;
         protected object Lock = new object();
         protected IMessageManager MessageManager;
@@ -45,6 +45,7 @@ namespace CMA
         }
 
         public Dictionary<string, IMailBox> Cache { get; protected set; } = new Dictionary<string, IMailBox>();
+        public IActor Actor { get; protected set; }
 
         public IMailBox Parent { get; set; }
 
@@ -64,6 +65,27 @@ namespace CMA
         public void RemoveChild(IMailBox mailBox)
         {
             ThreadController.Invoke(RemoveChildHandler, mailBox);
+        }
+
+        public void AddActor(IActor actor, string adress = null)
+        {
+            ThreadController.Invoke(AddActorHandler, new Tuple<IActor, string>(actor, adress));
+        }
+
+        protected void AddActorHandler(Tuple<IActor, string> tuple)
+        {
+            var addActor = new AddActor(tuple.Item1);
+
+            if (string.IsNullOrEmpty(tuple.Item2))
+            {
+                OnAddActor(addActor, null);
+            }
+            else
+            {
+                var message = new Message(addActor);
+                message.Init(new Adress(tuple.Item2), Adress);
+                SendMail(message);
+            }
         }
 
         protected void AddChildHandler(IMailBox mailBox)
@@ -118,7 +140,12 @@ namespace CMA
             {
                 if (!message.IsAdressOver && message.CurrentAdressPart == Adress.LastPart)
                 {
-                    if (MessageManager.CanRespounce(message))
+                    if (message.Adress.ForChildren)
+                    {
+                        foreach (var mailBox in Children)
+                            mailBox.SendMail(message);
+                    }
+                    else if (MessageManager.CanRespounce(message))
                     {
                         MessageManager.Responce(message);
                     }

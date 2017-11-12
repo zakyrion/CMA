@@ -19,6 +19,7 @@ namespace CMA
 {
     public interface IMailBox
     {
+        IActor Actor { get; }
         IMailBox Parent { get; set; }
         List<IMailBox> Children { get; }
         IAdress Adress { get; }
@@ -26,5 +27,6 @@ namespace CMA
         void SendMail(IMessage message);
         void AddChild(IMailBox mailBox);
         void RemoveChild(IMailBox mailBox);
+        void AddActor(IActor actor, string adress = null);
     }
 }
