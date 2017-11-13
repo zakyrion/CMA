@@ -140,45 +140,40 @@ namespace CMA
                 {
                     AtDestinationMessageHandler(message);
                 }
-                else if (message.IsCheckFirstPath)
+                else if (Adress.LastPart == message.CurrentAdressPart)
                 {
-                    TransmitMessage(message);
-                }
-                else if (message.CurrentAdressPart == Adress.LastPart)
-                {
-                    message.PassCurrentAdressPart();
-                    TransmitMessage(message);
+                    if (message.IsCheckFirstPath)
+                    {
+                        TransmitMessage(message);
+                    }
+                    else
+                    {
+                        if (Adress.IsHaveParentWithSameName)
+                        {
+                            if (message.Adress.IsAbsAdress)
+                            {
+                                Parent.SendMail(message);
+                            }
+                            else
+                            {
+                                message.PassCurrentAdressPart();
+                                TransmitMessage(message);
+                            }
+                        }
+                        else
+                        {
+                            message.PassCurrentAdressPart();
+                            TransmitMessage(message);
+                        }
+                    }
                 }
                 else if (Parent != null)
                 {
                     Parent.SendMail(message);
                 }
-                else if (message.Adress.ContainsFirstPart(Adress))
-                {
-                    _forParent.Add(message);
-                    /*for (var i = 0; i < message.Adress.Parts; i++)
-                        if (Adress.LastPart == message.Adress[i])
-                        {
-                            var mailBox = Core.Core.Get<IMailBox>($"{message.Adress[i - 1]}/{Adress.AdressFull}");
-
-                            Adress.AddAdressToForward(message.Adress[i - 1]);
-
-                            foreach (var child in Children)
-                            {
-                                var updatePath = new Message(new UpdatePath(message.Adress[i - 1]));
-                                updatePath.Init(child.Adress, null);
-                                child.SendMail(updatePath);
-                            }
-
-                            mailBox.AddChild(this);
-                            mailBox.SendMail(message);
-
-                            break;
-                        }*/
-                }
                 else
                 {
-                    message.Fail();
+                    _forParent.Add(message);
                 }
             }
             catch (Exception e)
@@ -189,34 +184,43 @@ namespace CMA
 
         protected void AtDestinationMessageHandler(IMessage message)
         {
-            if (!message.IsAdressOver)
+            if (message.IsAdressOver)
             {
-                message.PassAdressFull();
-
-                if (MessageManager.CanRespounce(message))
-                {
-                    MessageManager.Responce(message);
-                }
-                else if (message.Adress.ForChildren)
-                {
-                    foreach (var mailBox in Children)
-                        mailBox.SendMail(message);
-                }
-                else
-                {
-                    lock (Lock)
-                    {
-                        ForActor.Enqueue(message);
-                    }
-
-                    Actor?.CheckMailBox();
-
-                    foreach (var mailBox in Children)
-                        mailBox.SendMail(message);
-                }
+                TransmitToClient(message);
             }
             else
             {
+                message.PassAdressFull();
+                Transmit(message);
+            }
+        }
+
+        protected void EmptyAdressMessageHandler(IMessage message)
+        {
+            if (Parent == null)
+            {
+                Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull}");
+
+                message.PassCurrentAdressPart();
+                Transmit(message);
+            }
+            else if (message.IsCheckFirstPath)
+            {
+                TransmitToClient(message);
+            }
+            else
+            {
+                Parent.SendMail(message);
+            }
+        }
+
+        protected void TransmitToClient(IMessage message)
+        {
+            if (MessageManager.CanRespounce(message))
+                MessageManager.Responce(message);
+            else
+            {
+
                 lock (Lock)
                 {
                     ForActor.Enqueue(message);
@@ -226,36 +230,31 @@ namespace CMA
             }
         }
 
-        protected void EmptyAdressMessageHandler(IMessage message)
+        protected void TransmitToChildren(IMessage message)
         {
-            if (Parent == null)
+            foreach (var child in Children)
+                child.SendMail(message);
+        }
+
+        protected void TransmitToAll(IMessage message)
+        {
+            TransmitToClient(message);
+            TransmitToChildren(message);
+        }
+
+        protected void Transmit(IMessage message)
+        {
+            switch (message.DeliveryType)
             {
-                Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull}");
-                message.PassCurrentAdressPart();
-
-                lock (Lock)
-                {
-                    ForActor.Enqueue(message);
-                }
-
-                Actor?.CheckMailBox();
-
-                foreach (var child in Children)
-                    child.SendMail(message);
-            }
-            else if (message.IsCheckFirstPath)
-            {
-                Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull}");
-                lock (Lock)
-                {
-                    ForActor.Enqueue(message);
-                }
-
-                Actor?.CheckMailBox();
-            }
-            else
-            {
-                Parent.SendMail(message);
+                case EDeliveryType.ToAll:
+                    TransmitToAll(message);
+                    break;
+                case EDeliveryType.ToChildern:
+                    TransmitToChildren(message);
+                    break;
+                case EDeliveryType.ToClient:
+                    TransmitToClient(message);
+                    break;
             }
         }
 
@@ -302,7 +301,7 @@ namespace CMA
 
         private void OnKill(IMessage obj)
         {
-            if (!obj.Adress.ForChildren)
+            if (obj.DeliveryType != EDeliveryType.ToChildern)
             {
                 Parent?.RemoveChild(this);
 

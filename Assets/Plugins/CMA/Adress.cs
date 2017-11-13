@@ -28,6 +28,7 @@ namespace CMA
             ChangeAdress(adress);
         }
 
+        public EDeliveryType DeliveryType { get; private set; }
         public int Parts => _splitedAdress.Count;
 
         public string this[int index] => _splitedAdress != null && _splitedAdress.Count > index
@@ -36,17 +37,12 @@ namespace CMA
 
         public string LastPart => _splitedAdress?[_splitedAdress.Count - 1];
         public string AdressFull { get; private set; }
-        public bool ForChildren { get; private set; }
+        public bool IsHaveParentWithSameName { get; private set; }
+        public bool IsAbsAdress { get; private set; }
 
         public bool Contains(IAdress adress)
         {
             return Contains(adress.AdressFull);
-        }
-
-        public bool ContainsFirstPart(IAdress adress)
-        {
-            var part = adress[0];
-            return _splitedAdress.Any(name => part == name);
         }
 
         public bool Contains(string adress)
@@ -66,12 +62,12 @@ namespace CMA
             var count = 0;
 
             for (var i = splits.Length - 1; i >= 0; i--)
-                for (var j = start; j >= Math.Max(0, start-1); j--)
-                    if (splits[i] == this[j])
-                    {
-                        count++;
-                        start = j;
-                    }
+            for (var j = start; j >= Math.Max(0, start - 1); j--)
+                if (splits[i] == this[j])
+                {
+                    count++;
+                    start = j;
+                }
 
             return count == splits.Length;
         }
@@ -82,12 +78,12 @@ namespace CMA
             var findedIndex = 0;
 
             for (var i = 0; i < adress.Parts; i++)
-                for (var j = findedIndex; j < Parts; j++)
-                    if (this[j] == adress[i])
-                    {
-                        findedIndex = j;
-                        result = i;
-                    }
+            for (var j = findedIndex; j < Parts; j++)
+                if (this[j] == adress[i])
+                {
+                    findedIndex = j;
+                    result = i;
+                }
 
             return result;
         }
@@ -158,13 +154,33 @@ namespace CMA
 
                 if (_splitedAdress[_splitedAdress.Count - 1] == "*")
                 {
-                    ForChildren = true;
+                    DeliveryType = EDeliveryType.ToChildern;
                     _splitedAdress.RemoveAt(_splitedAdress.Count - 1);
                     AdressFull = string.Join("/", _splitedAdress);
                 }
+                else if (_splitedAdress[_splitedAdress.Count - 1] == "!")
+                {
+                    DeliveryType = EDeliveryType.ToClient;
+                    _splitedAdress.RemoveAt(_splitedAdress.Count - 1);
+                    AdressFull = string.Join("/", _splitedAdress);
+                }
+                else
+                    DeliveryType = EDeliveryType.ToAll;
 
-                if (string.IsNullOrEmpty(AdressFull) || string.IsNullOrWhiteSpace(AdressFull))
-                    throw new Exception("Adress if empty");
+                if (!string.IsNullOrEmpty(AdressFull) && !string.IsNullOrWhiteSpace(AdressFull))
+                {
+                    IsAbsAdress = AdressFull[0] == '*';
+
+                    var name = _splitedAdress[_splitedAdress.Count - 1];
+                    for (var i = 0; i < _splitedAdress.Count-1; i++)
+                    {
+                        if (_splitedAdress[i] == name)
+                        {
+                            IsHaveParentWithSameName = true;
+                            break;
+                        }
+                    }
+                }
             }
         }
 

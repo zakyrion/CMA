@@ -44,7 +44,6 @@ namespace CMA
             if (!_isQuit)
             {
                 _isQuit = true;
-                Actor.Quit();
                 Destroy(gameObject);
             }
         }
@@ -72,6 +71,17 @@ namespace CMA
         public void Respounce(IMessage message, object data = null)
         {
             Actor.Respounce(message, data);
+        }
+
+        public void Quit(bool needKillBaseActor)
+        {
+            if (!_isQuit)
+            {
+                _isQuit = true;
+                if (needKillBaseActor)
+                    Actor.Quit();
+                Destroy(gameObject);
+            }
         }
 
         protected abstract void Subscribe();
@@ -112,7 +122,7 @@ namespace CMA
 
         protected virtual void OnDestroy()
         {
-            Quit();
+            Quit(true);
         }
 
         #endregion

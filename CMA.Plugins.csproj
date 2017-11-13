@@ -233,6 +233,7 @@
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadPoolController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\UpdateService.cs" />
+    <Compile Include="Assets\Plugins\CMA\EDeliveryType.cs" />
     <Compile Include="Assets\Plugins\CMA\IActor.cs" />
     <Compile Include="Assets\Plugins\CMA\IAdress.cs" />
     <Compile Include="Assets\Plugins\CMA\IMailBox.cs" />

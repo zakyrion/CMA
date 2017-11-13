@@ -21,6 +21,7 @@ namespace CMA.Messages
         private int _index;
         protected List<string> Traces = new List<string>();
 
+        public virtual EDeliveryType DeliveryType => Adress.DeliveryType;
         public IAdress BackAdress { get; protected set; }
         public IAdress Adress { get; protected set; }
         public string CurrentAdressPart => Adress[_index];
@@ -48,7 +49,7 @@ namespace CMA.Messages
 
         public void PassAdressFull()
         {
-            _index = Adress.Parts - 1;
+            _index = Adress.Parts;
         }
 
         public bool IsCheckFirstPath => _index > 0;

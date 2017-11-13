@@ -23,7 +23,8 @@ namespace CMA
     public class Actor : IActor
     {
         private readonly List<IMessage> _forSend = new List<IMessage>();
-        private int _id;
+        private bool _isQuit;
+        private int _respounceId;
         protected Dictionary<IRespounceCode, IActionHandler> Actions = new Dictionary<IRespounceCode, IActionHandler>();
 
         protected Func<IMessage[]> MessagesRequest;
@@ -50,7 +51,7 @@ namespace CMA
             Subscribe();
         }
 
-        protected int RespounceId => _id++;
+        protected int RespounceId => _respounceId++;
 
         public IMessageManager Manager { get; protected set; }
 
@@ -83,8 +84,12 @@ namespace CMA
 
         public virtual void Quit()
         {
-            ThreadController.Remove();
-            Manager.Quit();
+            if (!_isQuit)
+            {
+                _isQuit = true;
+                ThreadController.Remove();
+                Manager.Quit();
+            }
         }
 
         public virtual void Send(object data, string adress = "")
@@ -193,7 +198,11 @@ namespace CMA
 
         private void OnKill(IMessage obj)
         {
-            ThreadController.Invoke(OnKillHandler);
+            if (!_isQuit)
+            {
+                _isQuit = true;
+                ThreadController.Invoke(OnKillHandler);
+            }
         }
 
         private void OnKillHandler()

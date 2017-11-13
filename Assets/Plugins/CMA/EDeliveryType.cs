@@ -14,26 +14,10 @@
 
 namespace CMA
 {
-    public interface IAdress
+    public enum EDeliveryType
     {
-        EDeliveryType DeliveryType { get; }
-        int Parts { get; }
-        string this[int index] { get; }
-        string LastPart { get; }
-        string AdressFull { get; }
-        bool IsHaveParentWithSameName { get; }
-        bool IsAbsAdress { get; }
-
-        bool Contains(IAdress adress);
-        bool Contains(string adress);
-
-        bool IsDestination(IAdress adress);
-        bool IsDestination(string adress);
-
-        int ContainsParts(IAdress adress);
-
-        void ChangeAdress(string newAdress);
-        void AddAdressToBack(string adressPart);
-        void AddAdressToForward(string adressPart);
+        ToAll = 0,
+        ToClient = 1,
+        ToChildern = 2
     }
 }

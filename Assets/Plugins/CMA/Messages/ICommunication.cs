@@ -21,6 +21,7 @@ namespace CMA.Messages
         bool IsCheckFirstPath { get; }
         bool IsAdressOver { get; }
         bool IsFaild { get; }
+        EDeliveryType DeliveryType { get; }
         IAdress BackAdress { get; }
         IAdress Adress { get; }
         string CurrentAdressPart { get; }
