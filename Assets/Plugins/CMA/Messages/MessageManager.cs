@@ -27,6 +27,7 @@ namespace CMA.Messages
             new Dictionary<string, List<IMessageHandler>>();
 
         protected IThreadController ThreadController;
+        protected bool IsQuit;
 
         public MessageManager()
         {
@@ -42,7 +43,7 @@ namespace CMA.Messages
         {
             lock (Lock)
             {
-                MessageRecievers.Clear();
+                IsQuit = true;
             }
         }
 
@@ -115,7 +116,16 @@ namespace CMA.Messages
                     var key = message.GetKey();
                     if (MessageRecievers.ContainsKey(key))
                         for (var i = 0; i < MessageRecievers[key].Count; i++)
-                            MessageRecievers[key][i].Invoke(message);
+                        {
+                            if (!IsQuit)
+                            {
+                                if (key.Contains("Kill"))
+                                {
+                                    Debug.Log($"Catch kill: {MessageRecievers[key].Count}");
+                                }
+                                MessageRecievers[key][i].Invoke(message);
+                            }
+                        }
                 }
                 catch (Exception exception)
                 {

@@ -140,10 +140,15 @@ namespace CMA
                 {
                     AtDestinationMessageHandler(message);
                 }
+                else if (message.IsAdressOver && Adress.Contains(message.Adress))
+                {
+                    TransmitToClient(message);
+                }
                 else if (Adress.LastPart == message.CurrentAdressPart)
                 {
                     if (message.IsCheckFirstPath)
                     {
+                        message.PassCurrentAdressPart();
                         TransmitMessage(message);
                     }
                     else
@@ -184,23 +189,14 @@ namespace CMA
 
         protected void AtDestinationMessageHandler(IMessage message)
         {
-            if (message.IsAdressOver)
-            {
-                TransmitToClient(message);
-            }
-            else
-            {
-                message.PassAdressFull();
-                Transmit(message);
-            }
+            message.PassAdressFull();
+            Transmit(message);
         }
 
         protected void EmptyAdressMessageHandler(IMessage message)
         {
             if (Parent == null)
             {
-                Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull}");
-
                 message.PassCurrentAdressPart();
                 Transmit(message);
             }
@@ -216,11 +212,11 @@ namespace CMA
 
         protected void TransmitToClient(IMessage message)
         {
+            Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull} sended to: {message.Adress.AdressFull}");
             if (MessageManager.CanRespounce(message))
                 MessageManager.Responce(message);
             else
             {
-
                 lock (Lock)
                 {
                     ForActor.Enqueue(message);
@@ -264,13 +260,12 @@ namespace CMA
 
             if (key == null)
             {
-                Debug.Log($"{message.GetKey()} Current Adress Null, Full Adress: {message.Adress}");
+                Debug.LogError($"{message.GetKey()} Current Adress Null, Full Adress: {message.Adress}");
                 message.ShowTrace();
             }
 
             if (Cache.ContainsKey(key))
             {
-                message.PassCurrentAdressPart();
                 Cache[key].SendMail(message);
             }
             else
@@ -301,29 +296,22 @@ namespace CMA
 
         private void OnKill(IMessage obj)
         {
-            if (obj.DeliveryType != EDeliveryType.ToChildern)
+            Parent?.RemoveChild(this);
+
+            MessageManager.Quit();
+
+            if (Actor != null)
             {
-                Parent?.RemoveChild(this);
-
-                MessageManager.Quit();
-
-                if (Actor != null)
+                lock (Lock)
                 {
-                    lock (Lock)
-                    {
-                        ForActor.Clear();
-                        ForActor.Enqueue(obj);
-                    }
-
-                    Actor.CheckMailBox();
+                    ForActor.Clear();
+                    ForActor.Enqueue(obj);
                 }
 
-                ThreadController.Remove();
+                Actor.CheckMailBox();
             }
-            else
-            {
-                Debug.Log("Catch Kill all children");
-            }
+
+            ThreadController.Remove();
 
             foreach (var child in Children)
             {

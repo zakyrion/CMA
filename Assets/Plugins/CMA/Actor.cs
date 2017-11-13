@@ -106,6 +106,8 @@ namespace CMA
                 message.SetAdress(new Adress(adress));
                 _forSend.Add(message);
             }
+
+            Debug.Log($"Send message: {message.GetKey()} from: {Adress} to: {message.Adress}");
         }
 
         public virtual void Send(object data, Action action, string adress = "")
@@ -124,6 +126,7 @@ namespace CMA
                 message = new Message(data);
             }
 
+
             if (MailBox != null)
             {
                 message.Init(new Adress(adress), MailBox.Adress);
@@ -134,6 +137,8 @@ namespace CMA
                 message.SetAdress(new Adress(adress));
                 _forSend.Add(message);
             }
+
+            Debug.Log($"Send message: {message.GetKey()} from: {Adress} to: {message.Adress}");
         }
 
         public void Ask<TR>(Action<TR> action, string adress = "")
@@ -155,6 +160,8 @@ namespace CMA
                 request.SetAdress(new Adress(adress));
                 _forSend.Add(request);
             }
+
+            Debug.Log($"Send request: {request.GetKey()} from: {Adress} to: {request.Adress}");
         }
 
         public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
@@ -166,6 +173,7 @@ namespace CMA
 
             var request = new Request<TR>(data, code);
 
+
             if (MailBox != null)
             {
                 request.Init(new Adress(adress), MailBox.Adress);
@@ -176,6 +184,8 @@ namespace CMA
                 request.SetAdress(new Adress(adress));
                 _forSend.Add(request);
             }
+
+            Debug.Log($"Send request: {request.GetKey()} from: {Adress} to: {request.Adress}");
         }
 
         public void Respounce(IMessage message, object data = null)

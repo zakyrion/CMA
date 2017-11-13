@@ -14,6 +14,7 @@ namespace View
         private int _id;
         public void Init(int id, float speed, Vector3 destination)
         {
+            name = $"Asteroid_{id}";
             _id = id;
             _speed = speed;
             _destination = destination;

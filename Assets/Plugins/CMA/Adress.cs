@@ -147,6 +147,11 @@ namespace CMA
             if (!string.IsNullOrEmpty(AdressFull) && !string.IsNullOrWhiteSpace(AdressFull))
             {
                 _splitedAdress.Clear();
+                IsAbsAdress = AdressFull[0] == '*';
+
+                if (IsAbsAdress)
+                    AdressFull = AdressFull.Remove(0, 1);
+
                 var subStrs = AdressFull.Split('/');
 
                 foreach (var str in subStrs)
@@ -169,8 +174,6 @@ namespace CMA
 
                 if (!string.IsNullOrEmpty(AdressFull) && !string.IsNullOrWhiteSpace(AdressFull))
                 {
-                    IsAbsAdress = AdressFull[0] == '*';
-
                     var name = _splitedAdress[_splitedAdress.Count - 1];
                     for (var i = 0; i < _splitedAdress.Count-1; i++)
                     {
