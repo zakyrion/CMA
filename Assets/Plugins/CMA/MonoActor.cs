@@ -80,7 +80,6 @@ namespace CMA
                 _isQuit = true;
                 if (needKillBaseActor)
                     Actor.Quit();
-                Destroy(gameObject);
             }
         }
 
