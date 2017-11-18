@@ -15,8 +15,11 @@ namespace Model
             Core.SubscribeBuilder(new BulletBuilder());
 
             var actor = new Main();
-
+            ActorSystem system = new ActorSystem();
+            
             Instance = new MailBox(new Adress("Main"));
+            system.AddMailbox(Instance);
+
             Instance.AddActor(actor);
 
             var asteroidManager = new AsteroidManager();

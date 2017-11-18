@@ -62,7 +62,7 @@ namespace CMA.Messages
         {
             AdressFull = adress;
 
-            IsAbsAdress = AdressFull[0] == '*';
+            IsAbsAdress = !string.IsNullOrEmpty(AdressFull) && AdressFull[0] == '*';
 
             if (IsAbsAdress)
                 AdressFull = AdressFull.Remove(0, 1);
