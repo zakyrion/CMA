@@ -18,8 +18,6 @@ namespace CMA.Messages
 {
     public interface IMessageManager
     {
-        IMessage Message { get; }
-
         void Receive<T>(Action<IMessage> @delegate);
         void Receive<T>(Action<T, IMessage> @delegate);
 

@@ -24,8 +24,7 @@ namespace CMA
         IThreadController ThreadController { get; }
         string Adress { get; }
 
-        void CheckMailBox();
-        void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest);
+        void OnAdd(IMailBox mailBox);
         void Quit();
 
         void Send(object data, string adress = "");
@@ -34,6 +33,7 @@ namespace CMA
         void Ask<TR>(Action<TR> action, string adress = "");
         void Ask<TM, TR>(TM data, Action<TR> action, string adress = "");
 
+        void PushMessage(IMessage message);
         void Respounce(IMessage message, object data = null);
     }
 }

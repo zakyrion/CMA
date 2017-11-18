@@ -18,28 +18,79 @@ namespace CMA.Messages
 {
     public abstract class Communication : ICommunication
     {
+        private IAdress _adressRef;
+        private IAdress _backAdressRef;
         private int _index;
         protected List<string> Traces = new List<string>();
 
-        public virtual EDeliveryType DeliveryType => Adress.DeliveryType;
-        public IAdress BackAdress { get; protected set; }
-        public IAdress Adress { get; protected set; }
+
+        public bool IsAbsAdress { get; protected set; }
+        public EDeliveryType DeliveryType { get; protected set; } = EDeliveryType.ToAll;
+
+        public IAdress BackAdress
+        {
+            get { return _backAdressRef = _backAdressRef ?? new Adress(BackAdressFull); }
+        }
+
+        public IAdress Adress
+        {
+            get { return _adressRef = _adressRef ?? new Adress(AdressFull); }
+        }
+
+        public string AdressFull { get; protected set; }
+        public string BackAdressFull { get; protected set; }
         public string CurrentAdressPart => Adress[_index];
 
-        public void Init(IAdress adress, IAdress backAdress)
+        public void Init(string adress, string backAdress)
         {
-            Adress = adress;
-            BackAdress = backAdress;
+            BackAdressFull = backAdress;
+
+            SetAdress(adress);
+        }
+
+        public void Init(IAdress adress, string backAdress)
+        {
+            AdressFull = adress.AdressFull;
+            _adressRef = adress;
+            IsAbsAdress = adress.IsAbsAdress;
+
+            DeliveryType = _adressRef.DeliveryType;
+            BackAdressFull = backAdress;
+        }
+
+        public void SetAdress(string adress)
+        {
+            AdressFull = adress;
+
+            IsAbsAdress = AdressFull[0] == '*';
+
+            if (IsAbsAdress)
+                AdressFull = AdressFull.Remove(0, 1);
+
+            if (AdressFull[AdressFull.Length - 1] == '*')
+            {
+                DeliveryType = EDeliveryType.ToChildern;
+                AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+            }
+            else if (AdressFull[AdressFull.Length - 1] == '!')
+            {
+                DeliveryType = EDeliveryType.ToClient;
+                AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+            }
         }
 
         public void SetAdress(IAdress adress)
         {
-            Adress = adress;
+            AdressFull = adress.AdressFull;
+            _adressRef = adress;
+            IsAbsAdress = adress.IsAbsAdress;
+            DeliveryType = adress.DeliveryType;
         }
 
-        public void SetBackAdress(IAdress backAdress)
+        public void SetBackAdress(string backAdress)
         {
-            BackAdress = backAdress;
+            _backAdressRef = null;
+            BackAdressFull = backAdress;
         }
 
         public void PassCurrentAdressPart()

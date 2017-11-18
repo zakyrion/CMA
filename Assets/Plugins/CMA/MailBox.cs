@@ -41,6 +41,12 @@ namespace CMA
             Debug.Log("Create MailBox: " + adress.AdressFull);
         }
 
+        public MailBox(IAdress adress, ActorSystem system) : this(adress)
+        {
+            System = system;
+            System.AddMailbox(this);
+        }
+
         public MailBox(IAdress adress, IThreadController threadController)
         {
             Adress = adress;
@@ -51,7 +57,14 @@ namespace CMA
             Debug.Log("Create MailBox: " + adress.AdressFull);
         }
 
+        public MailBox(IAdress adress, IThreadController threadController, ActorSystem system) : this(adress,
+            threadController)
+        {
+            System = system;
+        }
+
         public Dictionary<string, IMailBox> Cache { get; protected set; } = new Dictionary<string, IMailBox>();
+        public ActorSystem System { get; protected set; }
         public IActor Actor { get; protected set; }
 
         public IMailBox Parent
@@ -67,6 +80,11 @@ namespace CMA
         public List<IMailBox> Children { get; protected set; } = new List<IMailBox>();
         public IAdress Adress { get; protected set; }
 
+        public void PushMail(IMessage message)
+        {
+            PushMailHandler(message);
+        }
+
         public void SendMail(IMessage message)
         {
             ThreadController.Invoke(MessageHandler, message);
@@ -77,6 +95,11 @@ namespace CMA
             ThreadController.Invoke(AddChildHandler, mailBox);
         }
 
+        public void AddParent(IMailBox mailBox)
+        {
+            ThreadController.Invoke(AddParentHandler, mailBox);
+        }
+
         public void RemoveChild(IMailBox mailBox)
         {
             ThreadController.Invoke(RemoveChildHandler, mailBox);
@@ -85,6 +108,37 @@ namespace CMA
         public void AddActor(IActor actor, string adress = null)
         {
             ThreadController.Invoke(AddActorHandler, new Tuple<IActor, string>(actor, adress));
+        }
+
+        protected void PushMailHandler(IMessage message)
+        {
+            if (System != null)
+            {
+                var receiver = System.RequestDeliveryMailbox(message.AdressFull);
+                if (receiver != null)
+                    receiver.SendMail(message);
+                else
+                    SendMail(message);
+            }
+            else
+            {
+                SendMail(message);
+            }
+        }
+
+        protected void AddParentHandler(IMailBox obj)
+        {
+            Parent = obj;
+            System?.RemoveMailbox(this);
+            System = obj.System;
+            System.AddMailbox(this);
+        }
+
+        protected void AddChildHandler(IMailBox mailBox)
+        {
+            mailBox.AddParent(this);
+            Children.Add(mailBox);
+            Cache.Add(mailBox.Adress.LastPart, mailBox);
         }
 
         private void OnAddParentHandler()
@@ -105,17 +159,11 @@ namespace CMA
             else
             {
                 var message = new Message(addActor);
-                message.Init(new Adress(tuple.Item2), Adress);
+                message.Init(new Adress(tuple.Item2), Adress.AdressFull);
                 SendMail(message);
             }
         }
 
-        protected void AddChildHandler(IMailBox mailBox)
-        {
-            mailBox.Parent = this;
-            Children.Add(mailBox);
-            Cache.Add(mailBox.Adress.LastPart, mailBox);
-        }
 
         protected void RemoveChildHandler(IMailBox mailBox)
         {
@@ -132,20 +180,13 @@ namespace CMA
             {
                 message.AddTrace(Adress.AdressFull);
 
-                if (string.IsNullOrEmpty(message.Adress.AdressFull))
-                {
+                if (string.IsNullOrEmpty(message.AdressFull))
                     EmptyAdressMessageHandler(message);
-                }
-                else if (Adress.IsDestination(message.Adress))
-                {
+                else if (Adress.IsDestination(message.AdressFull))
                     AtDestinationMessageHandler(message);
-                }
                 else if (message.IsAdressOver && Adress.Contains(message.Adress))
-                {
                     TransmitToClient(message);
-                }
                 else if (Adress.LastPart == message.CurrentAdressPart)
-                {
                     if (message.IsCheckFirstPath)
                     {
                         message.PassCurrentAdressPart();
@@ -171,19 +212,14 @@ namespace CMA
                             TransmitMessage(message);
                         }
                     }
-                }
                 else if (Parent != null)
-                {
                     Parent.SendMail(message);
-                }
                 else
-                {
                     _forParent.Add(message);
-                }
             }
             catch (Exception e)
             {
-                Debug.Log($"Exception: {e}");
+                //Debug.Log($"Exception: {e}");
             }
         }
 
@@ -212,18 +248,13 @@ namespace CMA
 
         protected void TransmitToClient(IMessage message)
         {
-            Debug.Log($"Catch: {message.GetKey()} at: {Adress.AdressFull} sended to: {message.Adress.AdressFull}");
+            //Debug.Log($"Catch: {message.Key()} at: {Adress.AdressFull} sended to: {message.Adress.AdressFull}");
             if (MessageManager.CanRespounce(message))
                 MessageManager.Responce(message);
+            else if (Actor != null)
+                Actor.PushMessage(message);
             else
-            {
-                lock (Lock)
-                {
-                    ForActor.Enqueue(message);
-                }
-
-                Actor?.CheckMailBox();
-            }
+                ForActor.Enqueue(message);
         }
 
         protected void TransmitToChildren(IMessage message)
@@ -260,7 +291,7 @@ namespace CMA
 
             if (key == null)
             {
-                Debug.LogError($"{message.GetKey()} Current Adress Null, Full Adress: {message.Adress}");
+                Debug.LogError($"{message.Key} Current Adress Null, Full Adress: {message.Adress}");
                 message.ShowTrace();
             }
 
@@ -284,32 +315,22 @@ namespace CMA
             MessageManager.Receive<CallBack>(OnCallback);
         }
 
-        private void OnCallback(IMessage obj)
+        private void OnCallback(IMessage message)
         {
-            lock (Lock)
-            {
-                ForActor.Enqueue(obj);
-            }
-
-            Actor?.CheckMailBox();
+            if (Actor != null)
+                Actor.PushMessage(message);
+            else
+                ForActor.Enqueue(message);
         }
 
-        private void OnKill(IMessage obj)
+        private void OnKill(IMessage message)
         {
+            System.RemoveMailbox(this);
             Parent?.RemoveChild(this);
 
             MessageManager.Quit();
 
-            if (Actor != null)
-            {
-                lock (Lock)
-                {
-                    ForActor.Clear();
-                    ForActor.Enqueue(obj);
-                }
-
-                Actor.CheckMailBox();
-            }
+            Actor?.PushMessage(message);
 
             ThreadController.Remove();
 
@@ -338,17 +359,10 @@ namespace CMA
             Debug.Log($"Actor Added to: {Adress.AdressFull}");
 
             Actor = addActor.Data;
-            Actor.OnAdd(this, RequestMessage);
-        }
+            Actor.OnAdd(this);
 
-        private IMessage[] RequestMessage()
-        {
-            lock (Lock)
-            {
-                var result = ForActor.ToArray();
-                ForActor.Clear();
-                return result;
-            }
+            while (ForActor.Count > 0)
+                Actor.PushMessage(ForActor.Dequeue());
         }
     }
 }

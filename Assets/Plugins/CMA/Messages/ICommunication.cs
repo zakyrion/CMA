@@ -21,14 +21,21 @@ namespace CMA.Messages
         bool IsCheckFirstPath { get; }
         bool IsAdressOver { get; }
         bool IsFaild { get; }
+        bool IsAbsAdress { get; }
+
         EDeliveryType DeliveryType { get; }
         IAdress BackAdress { get; }
         IAdress Adress { get; }
+
+        string AdressFull { get; }
+        string BackAdressFull { get; }
         string CurrentAdressPart { get; }
 
-        void Init(IAdress adress, IAdress backAdress);
+        void Init(string adress, string backAdress);
+        void Init(IAdress adress, string backAdress);
+        void SetAdress(string adress);
         void SetAdress(IAdress adress);
-        void SetBackAdress(IAdress backAdress);
+        void SetBackAdress(string backAdress);
         void PassCurrentAdressPart();
         void PassAdressFull();
 

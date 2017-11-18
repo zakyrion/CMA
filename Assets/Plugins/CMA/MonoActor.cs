@@ -29,14 +29,10 @@ namespace CMA
 
         public IMailBox MailBox => Actor.MailBox;
 
-        public void CheckMailBox()
-        {
-            Actor.CheckMailBox();
-        }
 
-        public virtual void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
+        public virtual void OnAdd(IMailBox mailBox)
         {
-            Actor.OnAdd(mailBox, messagesRequest);
+            Actor.OnAdd(mailBox);
         }
 
         public void Quit()
@@ -66,6 +62,11 @@ namespace CMA
         public void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
         {
             Actor.Ask(data, action, adress);
+        }
+
+        public void PushMessage(IMessage message)
+        {
+            Actor.PushMessage(message);
         }
 
         public void Respounce(IMessage message, object data = null)

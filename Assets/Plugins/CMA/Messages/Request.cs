@@ -17,25 +17,25 @@ namespace CMA.Messages
     /// <summary>
     /// </summary>
     /// <typeparam name="R">Result type</typeparam>
-    public class Request<R> : SingletonMessage
+    public class Request<R> : Message
     {
         public Request(object data, IRespounceCode respounceCode = null) : base(data, respounceCode)
         {
         }
 
-        public override string GetKey()
+        public string GetKey()
         {
             return typeof(R).ToString();
         }
     }
 
-    public class SimpleRequest<R> : SingletonMessage
+    public class SimpleRequest<R> : Message
     {
         public SimpleRequest(IRespounceCode respounceCode = null) : base(null, respounceCode)
         {
         }
 
-        public override string GetKey()
+        public string GetKey()
         {
             return typeof(R).ToString();
         }

@@ -12,23 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.using System.Collections;
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace CMA
 {
-    public struct Adress : IAdress
+    public class Adress : IAdress
     {
         private readonly List<string> _splitedAdress;
 
-        public Adress(string adress) : this()
+        public Adress(string adress)
         {
             _splitedAdress = new List<string>();
             ChangeAdress(adress);
         }
 
         public EDeliveryType DeliveryType { get; private set; }
+
         public int Parts => _splitedAdress.Count;
 
         public string this[int index] => _splitedAdress != null && _splitedAdress.Count > index
@@ -57,19 +56,13 @@ namespace CMA
 
         public bool IsDestination(string adress)
         {
-            var splits = adress.Split('/');
-            var start = Parts;
-            var count = 0;
+            if (IsAbsAdress && adress == AdressFull || adress.Length == AdressFull.Length && adress == AdressFull)
+                return true;
 
-            for (var i = splits.Length - 1; i >= 0; i--)
-            for (var j = start; j >= Math.Max(0, start - 1); j--)
-                if (splits[i] == this[j])
-                {
-                    count++;
-                    start = j;
-                }
+            if (adress.Length > AdressFull.Length)
+                return false;
 
-            return count == splits.Length;
+            return AdressFull.Remove(0, AdressFull.Length - adress.Length) == adress;
         }
 
         public int ContainsParts(IAdress adress)
@@ -93,17 +86,7 @@ namespace CMA
             AdressFull = newAdress;
 
             if (!string.IsNullOrEmpty(newAdress) && !string.IsNullOrWhiteSpace(newAdress))
-            {
-                var index = AdressFull.Length - 1;
-
-                while (AdressFull[index] == '/' && index >= 0)
-                    index--;
-
-                if (index != AdressFull.Length - 1)
-                    AdressFull = AdressFull.Substring(0, index);
-
                 SplitAdress();
-            }
         }
 
         public void AddAdressToBack(string adressPart)
@@ -154,35 +137,34 @@ namespace CMA
 
                 var subStrs = AdressFull.Split('/');
 
-                foreach (var str in subStrs)
-                    _splitedAdress.Add(str);
+                _splitedAdress.AddRange(subStrs);
 
                 if (_splitedAdress[_splitedAdress.Count - 1] == "*")
                 {
                     DeliveryType = EDeliveryType.ToChildern;
                     _splitedAdress.RemoveAt(_splitedAdress.Count - 1);
-                    AdressFull = string.Join("/", _splitedAdress);
+                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
                 }
                 else if (_splitedAdress[_splitedAdress.Count - 1] == "!")
                 {
                     DeliveryType = EDeliveryType.ToClient;
                     _splitedAdress.RemoveAt(_splitedAdress.Count - 1);
-                    AdressFull = string.Join("/", _splitedAdress);
+                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
                 }
                 else
+                {
                     DeliveryType = EDeliveryType.ToAll;
+                }
 
                 if (!string.IsNullOrEmpty(AdressFull) && !string.IsNullOrWhiteSpace(AdressFull))
                 {
                     var name = _splitedAdress[_splitedAdress.Count - 1];
-                    for (var i = 0; i < _splitedAdress.Count-1; i++)
-                    {
+                    for (var i = 0; i < _splitedAdress.Count - 1; i++)
                         if (_splitedAdress[i] == name)
                         {
                             IsHaveParentWithSameName = true;
                             break;
                         }
-                    }
                 }
             }
         }
@@ -190,6 +172,16 @@ namespace CMA
         public override string ToString()
         {
             return AdressFull;
+        }
+
+        public override int GetHashCode()
+        {
+            return AdressFull.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj.Equals(AdressFull);
         }
     }
 }

@@ -18,8 +18,6 @@ namespace CMA.Core
 {
     public class ThreadController : IThreadController
     {
-        protected readonly object Lock = new object();
-
         public virtual void Remove()
         {
         }

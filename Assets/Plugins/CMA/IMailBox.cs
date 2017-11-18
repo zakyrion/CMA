@@ -19,13 +19,16 @@ namespace CMA
 {
     public interface IMailBox
     {
+        ActorSystem System {get;}
         IActor Actor { get; }
         IMailBox Parent { get; set; }
         List<IMailBox> Children { get; }
         IAdress Adress { get; }
 
+        void PushMail(IMessage message);
         void SendMail(IMessage message);
         void AddChild(IMailBox mailBox);
+        void AddParent(IMailBox mailBox);
         void RemoveChild(IMailBox mailBox);
         void AddActor(IActor actor, string adress = null);
     }

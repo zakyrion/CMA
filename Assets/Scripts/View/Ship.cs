@@ -1,6 +1,4 @@
-﻿using System;
-using CMA;
-using CMA.Messages;
+﻿using CMA;
 using Model;
 using UnityEngine;
 
@@ -20,9 +18,9 @@ namespace View
             Main.Instance.AddActor(this, "Main/Ship");
         }
 
-        public override void OnAdd(IMailBox mailBox, Func<IMessage[]> messagesRequest)
+        public override void OnAdd(IMailBox mailBox)
         {
-            base.OnAdd(mailBox, messagesRequest);
+            base.OnAdd(mailBox);
 
             Debug.Log("Ask rect");
             Ask<Rect>(rect =>

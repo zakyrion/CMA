@@ -18,9 +18,7 @@ namespace CMA.Messages
     {
         IRespounceCode RespounceCode { get; }
         T GetData<T>();
-        string GetKey();
-        void LockMessage();
-        void UnlockMessage();
+        string Key { get; }
         void ShowTrace();
     }
 }

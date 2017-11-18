@@ -20,28 +20,14 @@ namespace CMA.Messages
     public class Message : Communication, IMessage
     {
         protected object Lock = new object();
-
         public Message(object data, IRespounceCode respounceCode = null)
         {
             Data = data;
             RespounceCode = respounceCode;
+            Key = Data.GetType().ToString();
         }
 
         public object Data { get; protected set; }
-
-        public virtual string GetKey()
-        {
-            return Data.GetType().ToString();
-        }
-
-        public virtual void LockMessage()
-        {
-        }
-
-        public virtual void UnlockMessage()
-        {
-        }
-
 
         public IRespounceCode RespounceCode { get; protected set; }
 
@@ -50,42 +36,14 @@ namespace CMA.Messages
             return (T) Data;
         }
 
+        public string Key { get; protected set; }
+
         public void ShowTrace()
         {
-            Debug.Log("Message: " + GetKey());
+            Debug.Log("Message: " + Key);
             Debug.Log("Adress : " + Adress.AdressFull);
             foreach (var trace in Traces)
                 Debug.Log("Trace: " + trace);
-        }
-    }
-
-    public class SingletonMessage : Message
-    {
-        private int? _threadId;
-        protected AutoResetEvent Event = new AutoResetEvent(true);
-
-        public SingletonMessage(object data, IRespounceCode respounceCode = null) : base(data, respounceCode)
-        {
-        }
-
-        public override void LockMessage()
-        {
-            if (_threadId.HasValue)
-            {
-                if (_threadId.Value == Thread.CurrentThread.ManagedThreadId)
-                    return;
-            }
-            else
-            {
-                _threadId = Thread.CurrentThread.ManagedThreadId;
-            }
-
-            Event.WaitOne();
-        }
-
-        public override void UnlockMessage()
-        {
-            Event.Set();
         }
     }
 }

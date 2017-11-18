@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using CMA.Messages;
 using UnityEngine;
 
@@ -21,7 +21,7 @@ namespace CMA.Core
 {
     public class MainThreadController : ThreadController, IUpdated
     {
-        protected Queue<Action> Actions = new Queue<Action>();
+        protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
 
         public MainThreadController()
         {
@@ -32,20 +32,10 @@ namespace CMA.Core
         {
             try
             {
-                Action[] actions = null;
+                Action action = null;
 
-                lock (Lock)
-                {
-                    if (Actions.Count > 0)
-                    {
-                        actions = Actions.ToArray();
-                        Actions.Clear();
-                    }
-                }
-
-                if (actions != null)
-                    foreach (var action in actions)
-                        action();
+                while (Actions.TryDequeue(out action))
+                    action();
             }
             catch (Exception e)
             {
@@ -55,19 +45,13 @@ namespace CMA.Core
 
         public override void Invoke(Action action)
         {
-            lock (Lock)
-            {
-                Actions.Enqueue(action);
-            }
+            Actions.Enqueue(action);
         }
 
         public override void Invoke<T>(Action<T> action, T param)
         {
-            lock (Lock)
-            {
-                var handler = new SimpleActionHandler<T>(action, param);
-                Actions.Enqueue(handler.Invoke);
-            }
+            var handler = new SimpleActionHandler<T>(action, param);
+            Actions.Enqueue(handler.Invoke);
         }
 
         public override void Remove()

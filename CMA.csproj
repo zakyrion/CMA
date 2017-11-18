@@ -230,6 +230,10 @@
     <Compile Include="Assets\Scripts\Model\Actors\BulletManager.cs" />
     <Compile Include="Assets\Scripts\Model\Actors\Main.cs" />
     <Compile Include="Assets\Scripts\Model\Dificult.cs" />
+    <Compile Include="Assets\Scripts\PerformanceTest\Container.cs" />
+    <Compile Include="Assets\Scripts\PerformanceTest\PerformanceTest.cs" />
+    <Compile Include="Assets\Scripts\PerformanceTest\PlusActor.cs" />
+    <Compile Include="Assets\Scripts\PerformanceTest\Starter.cs" />
     <Compile Include="Assets\Scripts\UI\UIService.cs" />
     <Compile Include="Assets\Scripts\View\Asteroid.cs" />
     <Compile Include="Assets\Scripts\View\BorderCalculator.cs" />

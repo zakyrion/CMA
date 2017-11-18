@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 using CMA.Messages;
 
@@ -23,7 +23,7 @@ namespace CMA.Core
     {
         private readonly AutoResetEvent _event = new AutoResetEvent(false);
 
-        protected Queue<Action> Actions = new Queue<Action>();
+        protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
         protected Thread Thread;
 
         public SingleThreadController()
@@ -34,45 +34,29 @@ namespace CMA.Core
 
         public override void Invoke(Action action)
         {
-            lock (Lock)
-            {
-                Actions.Enqueue(action);
-                _event.Set();
-            }
+            Actions.Enqueue(action);
+
+            _event.Set();
         }
 
         public override void Invoke<T>(Action<T> action, T param)
         {
-            lock (Lock)
-            {
-                var handler = new SimpleActionHandler<T>(action, param);
-                Actions.Enqueue(handler.Invoke);
-                _event.Set();
-            }
+            var handler = new SimpleActionHandler<T>(action, param);
+            Actions.Enqueue(handler.Invoke);
+
+            _event.Set();
         }
 
         protected virtual void Update()
         {
             while (true)
             {
-                Action[] actions = null;
+                if (Actions.Count == 0)
+                    _event.WaitOne();
 
-                do
-                {
-                    if (Actions.Count == 0)
-                        _event.WaitOne();
+                Action action = null;
 
-                    lock (Lock)
-                    {
-                        if (Actions.Count > 0)
-                        {
-                            actions = Actions.ToArray();
-                            Actions.Clear();
-                        }
-                    }
-                } while (actions == null);
-
-                foreach (var action in actions)
+                while (Actions.TryDequeue(out action))
                     action();
             }
         }

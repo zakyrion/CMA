@@ -41,9 +41,7 @@ namespace CMA.Messages
 
         public void Invoke(IMessage message)
         {
-            message.LockMessage();
             DelegateField(message.GetData<T>(), message);
-            message.UnlockMessage();
         }
     }
 }

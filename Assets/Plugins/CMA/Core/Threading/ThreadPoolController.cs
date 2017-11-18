@@ -13,25 +13,24 @@
 //   limitations under the License.
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Threading;
 using CMA.Messages;
-using Debug = UnityEngine.Debug;
 
 namespace CMA.Core
 {
     public class ThreadPoolController : ThreadController
     {
+        protected object Lock = new object();
         private bool _isAtCicle;
-        protected Queue<Action> Actions = new Queue<Action>();
+        protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
 
         public override void Invoke(Action action)
         {
+            Actions.Enqueue(action);
+
             lock (Lock)
             {
-                Actions.Enqueue(action);
-
                 if (!_isAtCicle)
                 {
                     _isAtCicle = true;
@@ -42,11 +41,11 @@ namespace CMA.Core
 
         public override void Invoke<T>(Action<T> action, T param)
         {
+            var handler = new SimpleActionHandler<T>(action, param);
+            Actions.Enqueue(handler.Invoke);
+            
             lock (Lock)
             {
-                var handler = new SimpleActionHandler<T>(action, param);
-                Actions.Enqueue(handler.Invoke);
-
                 if (!_isAtCicle)
                 {
                     _isAtCicle = true;
@@ -59,18 +58,12 @@ namespace CMA.Core
         {
             Action action = null;
 
+            while (Actions.TryDequeue(out action))
+                action();
+
             lock (Lock)
             {
-                if (Actions.Count > 0)
-                    action = Actions.Dequeue();
-                else
-                    _isAtCicle = false;
-            }
-
-            if (action != null)
-            {
-                action();
-                ThreadPool.QueueUserWorkItem(state => { Tick(); });
+                _isAtCicle = false;
             }
         }
     }

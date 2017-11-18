@@ -32,16 +32,15 @@ namespace CMA.Messages
             {
                 if (_actionParams != null)
                 {
-                    if (obj == null)
-                        Debug.Log("Obj Null");
+                    /*if (obj == null)
+                        Debug.Log("Obj Null");*/
 
                     _actionParams((T) obj);
                 }
             }
             catch (Exception e)
             {
-                Debug.Log($"Try cast to:{typeof(T)} but Type is:{obj.GetType()}");
-                throw;
+                //Debug.Log($"Try cast to:{typeof(T)} but Type is:{obj.GetType()}");
             }
         }
     }
@@ -63,8 +62,7 @@ namespace CMA.Messages
             }
             catch (Exception e)
             {
-                Debug.Log(e);
-                throw;
+                //Debug.Log(e);
             }
         }
     }
