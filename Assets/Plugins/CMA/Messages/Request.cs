@@ -21,11 +21,7 @@ namespace CMA.Messages
     {
         public Request(object data, IRespounceCode respounceCode = null) : base(data, respounceCode)
         {
-        }
-
-        public string GetKey()
-        {
-            return typeof(R).ToString();
+            Key = typeof(R).ToString();
         }
     }
 
@@ -33,11 +29,7 @@ namespace CMA.Messages
     {
         public SimpleRequest(IRespounceCode respounceCode = null) : base(null, respounceCode)
         {
-        }
-
-        public string GetKey()
-        {
-            return typeof(R).ToString();
+            Key = typeof(R).ToString();
         }
     }
 }

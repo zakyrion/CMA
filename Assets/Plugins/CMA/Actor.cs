@@ -98,7 +98,7 @@ namespace CMA
                 _forSend.Add(message);
             }
 
-            //Debug.Log($"Send message: {message.Key()} from: {Adress} to: {message.Adress}");
+            //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
         }
 
         public virtual void Send(object data, IAdress adress)
@@ -116,7 +116,7 @@ namespace CMA
                 _forSend.Add(message);
             }
 
-            //Debug.Log($"Send message: {message.Key()} from: {Adress} to: {message.Adress}");
+            //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
         }
 
         public virtual void Send(object data, Action action, string adress = "")
@@ -147,7 +147,7 @@ namespace CMA
                 _forSend.Add(message);
             }
 
-            //Debug.Log($"Send message: {message.Key()} from: {Adress} to: {message.Adress}");
+            //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
         }
 
         public void Ask<TR>(Action<TR> action, string adress = "")
@@ -170,7 +170,7 @@ namespace CMA
                 _forSend.Add(request);
             }
 
-            //Debug.Log($"Send request: {request.Key()} from: {Adress} to: {request.Adress}");
+            //Debug.Log($"Send request: {request.Key} from: {Adress} to: {request.Adress}");
         }
 
         public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
@@ -194,7 +194,7 @@ namespace CMA
                 _forSend.Add(request);
             }
 
-            //Debug.Log($"Send request: {request.Key()} from: {Adress} to: {request.Adress}");
+            //Debug.Log($"Send request: {request.Key} from: {Adress} to: {request.Adress}");
         }
 
         public void PushMessage(IMessage message)
@@ -204,7 +204,7 @@ namespace CMA
 
         public void Respounce(IMessage message, object data = null)
         {
-            //Debug.Log($"At: {Adress} Respounce: {message.Key()} by Adress: {message.BackAdress}");
+            //Debug.Log($"At: {Adress} Respounce: {message.Key} by Adress: {message.BackAdress}");
 
             var callback = new Message(new CallBack(message.RespounceCode, data));
 

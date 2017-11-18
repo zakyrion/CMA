@@ -62,20 +62,23 @@ namespace CMA.Messages
         {
             AdressFull = adress;
 
-            IsAbsAdress = !string.IsNullOrEmpty(AdressFull) && AdressFull[0] == '*';
-
-            if (IsAbsAdress)
-                AdressFull = AdressFull.Remove(0, 1);
-
-            if (AdressFull[AdressFull.Length - 1] == '*')
+            if (!string.IsNullOrEmpty(AdressFull))
             {
-                DeliveryType = EDeliveryType.ToChildern;
-                AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
-            }
-            else if (AdressFull[AdressFull.Length - 1] == '!')
-            {
-                DeliveryType = EDeliveryType.ToClient;
-                AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+                IsAbsAdress = AdressFull[0] == '*';
+
+                if (IsAbsAdress)
+                    AdressFull = AdressFull.Remove(0, 1);
+
+                if (AdressFull[AdressFull.Length - 1] == '*')
+                {
+                    DeliveryType = EDeliveryType.ToChildern;
+                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+                }
+                else if (AdressFull[AdressFull.Length - 1] == '!')
+                {
+                    DeliveryType = EDeliveryType.ToClient;
+                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+                }
             }
         }
 

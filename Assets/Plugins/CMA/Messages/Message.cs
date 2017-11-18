@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Threading;
 using UnityEngine;
 
 namespace CMA.Messages
@@ -24,7 +23,9 @@ namespace CMA.Messages
         {
             Data = data;
             RespounceCode = respounceCode;
-            Key = Data.GetType().ToString();
+
+            if (Data != null)
+                Key = Data.GetType().ToString();
         }
 
         public object Data { get; protected set; }
