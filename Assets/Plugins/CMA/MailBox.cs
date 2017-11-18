@@ -82,7 +82,7 @@ namespace CMA
 
         public void PushMail(IMessage message)
         {
-            PushMailHandler(message);
+            ThreadController.Invoke(PushMailHandler, message);
         }
 
         public void SendMail(IMessage message)
@@ -118,11 +118,11 @@ namespace CMA
                 if (receiver != null)
                     receiver.SendMail(message);
                 else
-                    SendMail(message);
+                    MessageHandler(message);
             }
             else
             {
-                SendMail(message);
+                MessageHandler(message);
             }
         }
 
