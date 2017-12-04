@@ -1,13 +1,10 @@
 ﻿using CMA;
-using CMA.Messages;
-using Model;
-using UnityEngine;
 
 namespace View
 {
     public class Asteroid : MonoActor
     {
-        [SerializeField] private Vector3 _destination;
+        /*[SerializeField] private Vector3 _destination;
 
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
@@ -46,12 +43,15 @@ namespace View
 
         protected override void Subscribe()
         {
-            Receive<Transform>(OnTransformRequest);
+            PushMessage<Transform>(OnTransformRequest);
         }
 
         private void OnTransformRequest(IMessage message)
         {
             Respounce(message, transform);
+        }*/
+        protected override void Subscribe()
+        {
         }
     }
 }

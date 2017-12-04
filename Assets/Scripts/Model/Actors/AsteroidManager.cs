@@ -9,7 +9,7 @@ using Random = System.Random;
 
 public class AsteroidManager : Actor
 {
-    private readonly Random _random = new Random();
+    /*private readonly Random _random = new Random();
     private bool _isStart;
 
     public AsteroidManager() : base(new MainThreadController())
@@ -18,10 +18,10 @@ public class AsteroidManager : Actor
 
     protected override void Subscribe()
     {
-        Receive<StartWithDificult>(OnStartWithDificult);
-        Receive<CreateAsteroid>(OnCreateAsteroid);
-        Receive<DestroyAsteroid>(OnDestroyAsteroid);
-        Receive<Main.GameOver>(OnGameOver);
+        PushMessage<StartWithDificult>(OnStartWithDificult);
+        PushMessage<CreateAsteroid>(OnCreateAsteroid);
+        PushMessage<DestroyAsteroid>(OnDestroyAsteroid);
+        PushMessage<Main.GameOver>(OnGameOver);
     }
 
     private void OnGameOver(IMessage message)
@@ -81,5 +81,5 @@ public class AsteroidManager : Actor
         public StartWithDificult(Dificult data) : base(data)
         {
         }
-    }
+    }*/
 }

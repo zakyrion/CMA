@@ -1,12 +1,19 @@
-﻿using System;
-using CMA;
+﻿using CMA;
+using CMA.Core;
 using CMA.Messages;
+using UnityEngine;
+using Random = System.Random;
 
 public class PlusActor : Actor
 {
     private readonly Random _random = new Random();
     private int _count;
     private int _done;
+
+    public PlusActor() /*: base(new SimpleThreadController()) */: base(new SingleThreadController())
+    {
+        
+    }
 
     protected override void Subscribe()
     {
@@ -18,7 +25,7 @@ public class PlusActor : Actor
     {
         _count = arg1.Data;
         _done = 0;
-
+        //Debug.Log("Start");
         /*for (var i = 0; i < _count; i++)
         {
             var result = _random.NextDouble() * _count;
@@ -34,7 +41,10 @@ public class PlusActor : Actor
         result += 1;
         _done++;
         if (_count == _done)
+        {
+            //Debug.Log("Done: " + _done);
             Send(new PerformanceTest.FinishCalculation(0), "PerformanceTest/!");
+        }
     }
 
     public class MathAction : Container<int>

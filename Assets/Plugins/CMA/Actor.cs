@@ -13,7 +13,6 @@
 //   limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using CMA.Core;
 using CMA.Messages;
@@ -54,20 +53,22 @@ namespace CMA
 
         public IMessageManager Manager { get; protected set; }
 
+        public ICluster Cluster { get; protected set; }
         public IThreadController ThreadController { get; protected set; }
-        public string Adress => MailBox?.Adress.AdressFull;
-        public IMailBox MailBox { get; protected set; }
+        public string Adress { get; protected set; }
 
-        public void OnAdd(IMailBox mailBox)
+        public void OnAdd(ICluster cluster, string adress)
         {
-            MailBox = mailBox;
+            //Debug.Log($"Add Actor to Cluster: {cluster.Name} By Adress: {adress}");
+            Cluster = cluster;
+            Adress = adress;
 
             foreach (var message in _forSend)
             {
                 /*if (string.IsNullOrEmpty(mailBox.Adress.AdressFull))
                     Debug.Log($"{GetType()}");*/
-                message.SetBackAdress(MailBox.Adress.AdressFull);
-                MailBox.PushMail(message);
+                message.SetBackAdress(Adress, cluster.Name);
+                Cluster.Send(message);
             }
 
             _forSend.Clear();
@@ -78,48 +79,32 @@ namespace CMA
             if (!_isQuit)
             {
                 _isQuit = true;
+                Cluster.RemoveActor(Adress);
                 ThreadController.Remove();
                 Manager.Quit();
             }
         }
 
-        public virtual void Send(object data, string adress = "")
+        public virtual void Send(object data, string adress, string cluster = null)
         {
             var message = new Message(data);
 
-            if (MailBox != null)
+            if (Cluster != null)
             {
-                message.Init(adress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(message);
+                message.Init(adress, Adress);
+                message.SetCluster(cluster);
+                Cluster.Send(message);
             }
             else
             {
-                message.SetAdress(adress);
+                message.SetAdress(adress,cluster);
                 _forSend.Add(message);
             }
 
             //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
         }
 
-        public virtual void Send(object data, IAdress adress)
-        {
-            var message = new Message(data);
-
-            if (MailBox != null)
-            {
-                message.Init(adress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(message);
-            }
-            else
-            {
-                message.SetAdress(adress);
-                _forSend.Add(message);
-            }
-
-            //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
-        }
-
-        public virtual void Send(object data, Action action, string adress = "")
+        public virtual void Send(object data, Action action, string adress, string cluster = null)
         {
             Message message;
             if (action != null)
@@ -136,21 +121,22 @@ namespace CMA
             }
 
 
-            if (MailBox != null)
+            if (Cluster != null)
             {
-                message.Init(adress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(message);
+                message.Init(adress, Adress);
+                message.SetCluster(cluster);
+                Cluster.Send(message);
             }
             else
             {
-                message.SetAdress(adress);
+                message.SetAdress(adress, cluster);
                 _forSend.Add(message);
             }
 
             //Debug.Log($"Send message: {message.Key} from: {Adress} to: {message.Adress}");
         }
 
-        public void Ask<TR>(Action<TR> action, string adress = "")
+        public void Ask<TR>(Action<TR> action, string adress, string cluster = "")
         {
             IActionHandler handler = new ActionHandler<TR>(action);
             IRespounceCode code = new RespounceCode(RespounceId);
@@ -159,21 +145,22 @@ namespace CMA
 
             var request = new SimpleRequest<TR>(code);
 
-            if (MailBox != null)
+            if (Cluster != null)
             {
-                request.Init(adress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(request);
+                request.Init(adress, Adress);
+                request.SetCluster(cluster);
+                Cluster.Send(request);
             }
             else
             {
-                request.SetAdress(adress);
+                request.SetAdress(adress, cluster);
                 _forSend.Add(request);
             }
 
             //Debug.Log($"Send request: {request.Key} from: {Adress} to: {request.Adress}");
         }
 
-        public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
+        public virtual void Ask<TM, TR>(TM data, Action<TR> action, string adress, string cluster = "")
         {
             IActionHandler handler = new ActionHandler<TR>(action);
             IRespounceCode code = new RespounceCode(RespounceId);
@@ -183,14 +170,16 @@ namespace CMA
             var request = new Request<TR>(data, code);
 
 
-            if (MailBox != null)
+            if (Cluster != null)
             {
-                request.Init(adress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(request);
+                request.Init(adress, Adress);
+                request.SetCluster(cluster);
+                Cluster.Send(request);
             }
             else
             {
                 request.SetAdress(adress);
+                request.SetAdress(adress, cluster);
                 _forSend.Add(request);
             }
 
@@ -208,28 +197,49 @@ namespace CMA
 
             var callback = new Message(new CallBack(message.RespounceCode, data));
 
-            if (MailBox != null)
+            if (Cluster != null)
             {
-                callback.Init(message.BackAdress, MailBox.Adress.AdressFull);
-                MailBox.PushMail(callback);
+                callback.Init(message.BackAdress, Adress);
+                callback.SetCluster(message.BackCluster);
+                Cluster.Send(callback);
             }
             else
             {
-                callback.SetAdress(message.BackAdress);
+                callback.SetAdress(message.BackAdress, message.BackCluster);
                 _forSend.Add(callback);
             }
         }
 
-        private void OnKill(IMessage obj)
+        protected void AskDeliveryHelper(string adress, string cluster, EDeliveryType deliveryType,
+            Action<IDeliveryHelper> callback)
         {
-            if (!_isQuit)
-            {
-                _isQuit = true;
-                ThreadController.Invoke(OnKillHandler);
-            }
+
+            Cluster.AskDeliveryHelper(receiver => ThreadController.Invoke(callback, receiver), adress, cluster,
+                deliveryType);
         }
 
-        private void OnKillHandler()
+        protected void AskDeliveryHelper(string adress, string cluster,
+            Action<IDeliveryHelper> callback)
+        {
+            var deliveryType = EDeliveryType.ToAll;
+
+            if (!string.IsNullOrEmpty(Adress))
+                if (Adress[Adress.Length - 1] == '*')
+                {
+                    deliveryType = EDeliveryType.ToChildern;
+                    Adress = Adress.Substring(0, Adress.Length - 2);
+                }
+                else if (Adress[Adress.Length - 1] == '!')
+                {
+                    deliveryType = EDeliveryType.ToClient;
+                    Adress = Adress.Substring(0, Adress.Length - 2);
+                }
+
+            Cluster.AskDeliveryHelper(receiver => ThreadController.Invoke(callback, receiver), adress, cluster,
+                deliveryType);
+        }
+
+        protected virtual void OnKill(IMessage obj)
         {
             Quit();
         }

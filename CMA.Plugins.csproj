@@ -218,29 +218,31 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Plugins\CMA\Actor.cs" />
-    <Compile Include="Assets\Plugins\CMA\Adress.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\Builder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\BuildManager.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\IBuilder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\IBuildManager.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\MailBoxBuilder.cs" />
+    <Compile Include="Assets\Plugins\CMA\Cluster.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\ActorSystem.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Core.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\IUpdated.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\IUpdateService.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\IThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\MainThreadController.cs" />
+    <Compile Include="Assets\Plugins\CMA\Core\Threading\SimpleThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\SingleThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadPoolController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\UpdateService.cs" />
     <Compile Include="Assets\Plugins\CMA\EDeliveryType.cs" />
     <Compile Include="Assets\Plugins\CMA\IActor.cs" />
-    <Compile Include="Assets\Plugins\CMA\IAdress.cs" />
-    <Compile Include="Assets\Plugins\CMA\IMailBox.cs" />
-    <Compile Include="Assets\Plugins\CMA\MailBox.cs" />
+    <Compile Include="Assets\Plugins\CMA\ICluster.cs" />
+    <Compile Include="Assets\Plugins\CMA\IDeliveryHelper.cs" />
+    <Compile Include="Assets\Plugins\CMA\IReceiver.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Communication.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Container.cs" />
+    <Compile Include="Assets\Plugins\CMA\Messages\DeliveryHelper.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Handlers\ActionHandler.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Handlers\IActionHandler.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Handlers\IMessageHandler.cs" />

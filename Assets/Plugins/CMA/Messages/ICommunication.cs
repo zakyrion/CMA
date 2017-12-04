@@ -12,35 +12,21 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Collections.Generic;
-
 namespace CMA.Messages
 {
     public interface ICommunication
     {
-        bool IsCheckFirstPath { get; }
-        bool IsAdressOver { get; }
-        bool IsFaild { get; }
-        bool IsAbsAdress { get; }
-
         EDeliveryType DeliveryType { get; }
-        IAdress BackAdress { get; }
-        IAdress Adress { get; }
 
-        string AdressFull { get; }
-        string BackAdressFull { get; }
-        string CurrentAdressPart { get; }
+        string Adress { get; }
+        string BackAdress { get; }
+        string Cluster { get; }
+        string BackCluster { get; }
 
         void Init(string adress, string backAdress);
-        void Init(IAdress adress, string backAdress);
-        void SetAdress(string adress);
-        void SetAdress(IAdress adress);
-        void SetBackAdress(string backAdress);
-        void PassCurrentAdressPart();
-        void PassAdressFull();
-
-        void Fail();
-        void AddTrace(string trace);
-        List<string> Trace();
+        void SetAdress(string adress, string cluster = null);
+        void SetCluster(string cluster);
+        void SetBackAdress(string backAdress, string cluster = null);
+        void SetBackCluster(string cluster);
     }
 }

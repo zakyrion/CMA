@@ -26,6 +26,9 @@ namespace CMA.Messages
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
 
+        protected Dictionary<Type, List<IMessageHandler>> TypedMessageRecievers =
+            new Dictionary<Type, List<IMessageHandler>>();
+
         protected IThreadController ThreadController;
 
         public MessageManager()
@@ -53,6 +56,13 @@ namespace CMA.Messages
                 MessageRecievers.Add(key, new List<IMessageHandler>());
 
             MessageRecievers[key].Add(new SimpleMessageHandler<T>(@delegate));
+
+            var keyType = typeof(T);
+
+            if (!TypedMessageRecievers.ContainsKey(keyType))
+                TypedMessageRecievers.Add(keyType, new List<IMessageHandler>());
+
+            TypedMessageRecievers[keyType].Add(new SimpleMessageHandler<T>(@delegate));
         }
 
         public virtual void Receive<T>(Action<T, IMessage> @delegate)
@@ -63,6 +73,13 @@ namespace CMA.Messages
                 MessageRecievers.Add(key, new List<IMessageHandler>());
 
             MessageRecievers[key].Add(new MessageHandler<T>(@delegate));
+
+            var keyType = typeof(T);
+
+            if (!TypedMessageRecievers.ContainsKey(keyType))
+                TypedMessageRecievers.Add(keyType, new List<IMessageHandler>());
+
+            TypedMessageRecievers[keyType].Add(new MessageHandler<T>(@delegate));
         }
 
         public bool CanRespounce(IMessage message)
@@ -76,6 +93,11 @@ namespace CMA.Messages
 
             if (MessageRecievers.ContainsKey(key))
                 MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
+
+            var keyType = typeof(T);
+
+            if (TypedMessageRecievers.ContainsKey(keyType))
+                TypedMessageRecievers[keyType].Remove(TypedMessageRecievers[keyType].Find(handler => handler.Contains(@delegate)));
         }
 
         public virtual void Responce(IMessage message)
@@ -87,18 +109,26 @@ namespace CMA.Messages
         {
             try
             {
-                var key = message.Key;
-                if (MessageRecievers.ContainsKey(key))
-                    for (var i = 0; i < MessageRecievers[key].Count; i++)
+                var keyType = message.KeyType;
+                if (TypedMessageRecievers.ContainsKey(keyType))
+                {
+                    for (var i = 0; i < TypedMessageRecievers[keyType].Count; i++)
                         if (!IsQuit)
-                            MessageRecievers[key][i].Invoke(message);
+                            TypedMessageRecievers[keyType][i].Invoke(message);
+                }
+                else
+                {
+                    var key = message.Key;
+                    if (MessageRecievers.ContainsKey(key))
+                        for (var i = 0; i < MessageRecievers[key].Count; i++)
+                            if (!IsQuit)
+                                MessageRecievers[key][i].Invoke(message);
+                }
             }
             catch (Exception exception)
             {
                 message.ShowTrace();
                 Debug.Log($"Exception:{exception} ");
-
-                message.Fail();
             }
         }
 

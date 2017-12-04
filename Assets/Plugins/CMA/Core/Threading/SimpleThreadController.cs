@@ -16,20 +16,24 @@ using System;
 
 namespace CMA.Core
 {
-    public abstract class ThreadController : IThreadController
+    public class SimpleThreadController : ThreadController
     {
-        public virtual void Remove()
+        protected object Lock = new object();
+
+        public override void Invoke(Action action)
         {
+            lock (Lock)
+            {
+                base.Invoke(action);
+            }
         }
 
-        public virtual void Invoke(Action action)
+        public override void Invoke<T>(Action<T> action, T param)
         {
-            action?.Invoke();
-        }
-
-        public virtual void Invoke<T>(Action<T> action, T param)
-        {
-            action?.Invoke(param);
+            lock (Lock)
+            {
+                base.Invoke(action, param);
+            }
         }
     }
 }

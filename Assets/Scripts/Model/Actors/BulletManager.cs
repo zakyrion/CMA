@@ -7,7 +7,7 @@ using View;
 
 public class BulletManager : Actor
 {
-    private bool _isStart;
+    /*private bool _isStart;
 
     public BulletManager() : base(new MainThreadController())
     {
@@ -15,9 +15,9 @@ public class BulletManager : Actor
 
     protected override void Subscribe()
     {
-        Receive<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
-        Receive<Main.GameOver>(OnGameOver);
-        Receive<CreateBullet>(OnCreateBullet);
+        PushMessage<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
+        PushMessage<Main.GameOver>(OnGameOver);
+        PushMessage<CreateBullet>(OnCreateBullet);
     }
 
     private void OnStartGameWithDificult(IMessage message)
@@ -47,5 +47,5 @@ public class BulletManager : Actor
         public CreateBullet(Vector3 data) : base(data)
         {
         }
-    }
+    }*/
 }

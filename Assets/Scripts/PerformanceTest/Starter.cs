@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using CMA;
+using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
 using Random = System.Random;
@@ -9,19 +11,28 @@ public class Starter : MonoBehaviour
 {
     public const int testCount = 100000;
     public const int testLaps = 10;
+    private readonly List<PlusActor> _actors = new List<PlusActor>();
     private readonly Random _random = new Random();
-    private MailBox mailbox;
+    private ICluster cluster;
+    private IActor test;
 
     private void Awake()
     {
-        mailbox = new MailBox(new Adress("PerformanceTest"), new ActorSystem());
-        mailbox.AddActor(new PerformanceTest());
+        var system = new ActorSystem();
+        cluster = new Cluster("Main", new SingleThreadController());
+        system.AddCluster(cluster);
+        test = new PerformanceTest();
+        cluster.AddActor(test, "PerformanceTest");
 
         for (var i = 0; i < testLaps; i++)
-            mailbox.AddActor(new PlusActor(), $"PerformanceTest/{i}");
+        {
+            var actor = new PlusActor();
+            _actors.Add(actor);
+            cluster.AddActor(actor, $"PerformanceTest/{i}");
+        }
     }
 
-    void Start()
+    private void Start()
     {
         StartCoroutine(Test());
     }
@@ -45,13 +56,13 @@ public class Starter : MonoBehaviour
             Debug.Log($"Finish test: {DateTime.Now.Ticks - timeStamp}");
         }
 
-        //yield return new WaitForSeconds(5);
+        yield return new WaitForSeconds(2);
 
-        mailbox.Actor.Send(new PerformanceTest.Start(), "PerformanceTest/!");
+        test.PushMessage(new Message(new PerformanceTest.Start()));
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
-        mailbox.Actor.Send(new Kill(), "PerformanceTest/!");
+        cluster.Quit();
     }
 }

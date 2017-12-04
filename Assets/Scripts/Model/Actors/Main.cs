@@ -8,7 +8,7 @@ namespace Model
 {
     public class Main : Actor
     {
-        static Main()
+        /*static Main()
         {
             Core.SubscribeBuilder(new AsteroidBuilder());
             Core.SubscribeBuilder(new ShipBuilder());
@@ -35,9 +35,9 @@ namespace Model
 
         protected override void Subscribe()
         {
-            Receive<InitGame>(OnInitGame);
-            Receive<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
-            Receive<GameOver>(OnGameOver);
+            PushMessage<InitGame>(OnInitGame);
+            PushMessage<AsteroidManager.StartWithDificult>(OnStartGameWithDificult);
+            PushMessage<GameOver>(OnGameOver);
         }
 
         private void OnGameOver(IMessage message)
@@ -68,6 +68,6 @@ namespace Model
 
         public class GameOver
         {
-        }
+        }*/
     }
 }

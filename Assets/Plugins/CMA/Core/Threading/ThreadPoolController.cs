@@ -13,8 +13,7 @@
 //   limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
-using System.Threading;
+using System.Threading.Tasks;
 using CMA.Messages;
 
 namespace CMA.Core
@@ -22,48 +21,38 @@ namespace CMA.Core
     public class ThreadPoolController : ThreadController
     {
         protected object Lock = new object();
-        private bool _isAtCicle;
-        protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
+        protected Task Task;
 
         public override void Invoke(Action action)
         {
-            Actions.Enqueue(action);
-
             lock (Lock)
             {
-                if (!_isAtCicle)
+                if (Task == null)
                 {
-                    _isAtCicle = true;
-                    ThreadPool.QueueUserWorkItem(state => { Tick(); });
+                    Task = new Task(action);
+                    Task.Start();
+                }
+                else
+                {
+                    Task = Task.ContinueWith(task => action);
                 }
             }
         }
 
         public override void Invoke<T>(Action<T> action, T param)
         {
-            var handler = new SimpleActionHandler<T>(action, param);
-            Actions.Enqueue(handler.Invoke);
-            
             lock (Lock)
             {
-                if (!_isAtCicle)
+                var handler = new SimpleActionHandler<T>(action, param);
+                if (Task == null)
                 {
-                    _isAtCicle = true;
-                    ThreadPool.QueueUserWorkItem(state => { Tick(); });
+                    Task = new Task(handler.Invoke);
+                    Task.Start();
                 }
-            }
-        }
-
-        protected virtual void Tick()
-        {
-            Action action = null;
-
-            while (Actions.TryDequeue(out action))
-                action();
-
-            lock (Lock)
-            {
-                _isAtCicle = false;
+                else
+                {
+                    Task = Task.ContinueWith(task => handler.Invoke());
+                }
             }
         }
     }

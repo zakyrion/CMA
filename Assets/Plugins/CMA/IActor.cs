@@ -18,22 +18,21 @@ using CMA.Messages;
 
 namespace CMA
 {
-    public interface IActor
+    public interface IActor : IReceiver
     {
-        IMailBox MailBox { get; }
+        ICluster Cluster { get; }
         IThreadController ThreadController { get; }
         string Adress { get; }
 
-        void OnAdd(IMailBox mailBox);
+        void OnAdd(ICluster cluster, string adress);
         void Quit();
 
-        void Send(object data, string adress = "");
-        void Send(object data, Action action, string adress = "");
+        void Send(object data, string adress, string cluster = "");
+        void Send(object data, Action action, string adress, string cluster = "");
 
-        void Ask<TR>(Action<TR> action, string adress = "");
-        void Ask<TM, TR>(TM data, Action<TR> action, string adress = "");
+        void Ask<TR>(Action<TR> action, string adress, string cluster = "");
+        void Ask<TM, TR>(TM data, Action<TR> action, string adress, string cluster = "");
 
-        void PushMessage(IMessage message);
         void Respounce(IMessage message, object data = null);
     }
 }

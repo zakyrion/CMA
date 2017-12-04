@@ -6,7 +6,7 @@ namespace View
 {
     public class StarGameManager : MonoBehaviour
     {
-        // Use this for initialization
+        /*// Use this for initialization
         private void Start()
         {
             Debug.Log("Start: " + Main.Instance);
@@ -18,6 +18,6 @@ namespace View
             yield return new WaitForSeconds(1f);
             Debug.Log("Init Game: ");
             Main.Instance.Actor.Send(new Main.InitGame());
-        }
+        }*/
     }
 }

@@ -13,49 +13,80 @@
 //   limitations under the License.using System.Collections;
 
 using System.Collections.Concurrent;
+using CMA.Core;
+using CMA.Messages;
 using UnityEngine;
 
 namespace CMA
 {
-    public class ActorSystem
+    public class ActorSystem : IReceiver
     {
-        protected ConcurrentDictionary<string, IMailBox> LocalMailBoxes = new ConcurrentDictionary<string, IMailBox>();
+        protected ConcurrentDictionary<string, ICluster> Clusters = new ConcurrentDictionary<string, ICluster>();
 
-        public void AddMailbox(IMailBox mailBox)
+        protected ConcurrentDictionary<string, ConcurrentQueue<IMessage>> MessagesWaitings =
+            new ConcurrentDictionary<string, ConcurrentQueue<IMessage>>();
+
+        protected IThreadController ThreadController;
+
+        public ActorSystem()
         {
-            if (LocalMailBoxes.ContainsKey(mailBox.Adress.AdressFull))
-                Debug.LogWarning("Contains Same key");
-
-            LocalMailBoxes[mailBox.Adress.AdressFull] = mailBox;
+            ThreadController = new SingleThreadController();
         }
 
-        public void RemoveMailbox(IMailBox mailBox)
+        public ActorSystem(IThreadController threadController)
         {
-            if (LocalMailBoxes.ContainsKey(mailBox.Adress.AdressFull))
-                LocalMailBoxes.TryRemove(mailBox.Adress.AdressFull, out mailBox);
+            ThreadController = threadController;
+        }
+
+        public void PushMessage(IMessage message)
+        {
+            if (Clusters.ContainsKey(message.Cluster))
+            {
+                Clusters[message.Cluster].Send(message);
+            }
+            else
+            {
+                if (!MessagesWaitings.ContainsKey(message.Cluster))
+                    MessagesWaitings.TryAdd(message.Cluster, new ConcurrentQueue<IMessage>());
+
+                MessagesWaitings[message.Cluster].Enqueue(message);
+            }
+        }
+
+        public void AddCluster(ICluster cluster)
+        {
+            if (Clusters.ContainsKey(cluster.Name))
+                Debug.LogWarning("Contains Same key");
+            cluster.OnAdd(this);
+            Clusters[cluster.Name] = cluster;
+
+            if (MessagesWaitings.ContainsKey(cluster.Name))
+            {
+                var queue = MessagesWaitings[cluster.Name];
+                while (!queue.IsEmpty)
+                {
+                    IMessage message = null;
+                    queue.TryDequeue(out message);
+                    cluster.PushMessage(message);
+                }
+            }
+        }
+
+        public void RemoveCluster(ICluster cluster)
+        {
+            if (Clusters.ContainsKey(cluster.Name))
+                Clusters.TryRemove(cluster.Name, out cluster);
         }
 
         public bool Contains(string adress)
         {
-            return LocalMailBoxes.ContainsKey(adress);
+            return Clusters.ContainsKey(adress);
         }
 
-        public bool Contains(IAdress adress)
+        public ICluster RequestDeliverycluster(string adress)
         {
-            return LocalMailBoxes.ContainsKey(adress.AdressFull);
-        }
-
-        public IMailBox RequestDeliveryMailbox(string adress)
-        {
-            IMailBox result = null;
-            LocalMailBoxes.TryGetValue(adress, out result);
-            return result;
-        }
-
-        public IMailBox RequestDeliveryMailbox(IAdress adress)
-        {
-            IMailBox result = null;
-            LocalMailBoxes.TryGetValue(adress.AdressFull, out result);
+            ICluster result = null;
+            Clusters.TryGetValue(adress, out result);
             return result;
         }
     }

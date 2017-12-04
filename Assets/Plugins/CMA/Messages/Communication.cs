@@ -12,117 +12,61 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Collections.Generic;
-
 namespace CMA.Messages
 {
     public abstract class Communication : ICommunication
     {
-        private IAdress _adressRef;
-        private IAdress _backAdressRef;
-        private int _index;
-        protected List<string> Traces = new List<string>();
-
-
         public bool IsAbsAdress { get; protected set; }
+
         public EDeliveryType DeliveryType { get; protected set; } = EDeliveryType.ToAll;
-
-        public IAdress BackAdress
-        {
-            get { return _backAdressRef = _backAdressRef ?? new Adress(BackAdressFull); }
-        }
-
-        public IAdress Adress
-        {
-            get { return _adressRef = _adressRef ?? new Adress(AdressFull); }
-        }
-
-        public string AdressFull { get; protected set; }
-        public string BackAdressFull { get; protected set; }
-        public string CurrentAdressPart => Adress[_index];
+        public string Adress { get; protected set; }
+        public string BackAdress { get; protected set; }
+        public string Cluster { get; protected set; }
+        public string BackCluster { get; protected set; }
 
         public void Init(string adress, string backAdress)
         {
-            BackAdressFull = backAdress;
-
-            SetAdress(adress);
+            BackAdress = backAdress;
+            ParseAdress(adress);
         }
 
-        public void Init(IAdress adress, string backAdress)
+        public void SetAdress(string adress, string cluster = null)
         {
-            AdressFull = adress.AdressFull;
-            _adressRef = adress;
-            IsAbsAdress = adress.IsAbsAdress;
-
-            DeliveryType = _adressRef.DeliveryType;
-            BackAdressFull = backAdress;
+            ParseAdress(adress);
+            Cluster = cluster;
         }
 
-        public void SetAdress(string adress)
+        public void SetCluster(string cluster)
         {
-            AdressFull = adress;
+            Cluster = cluster;
+        }
 
-            if (!string.IsNullOrEmpty(AdressFull))
-            {
-                IsAbsAdress = AdressFull[0] == '*';
+        public void SetBackAdress(string backAdress, string cluster = null)
+        {
+            BackAdress = backAdress;
+            BackCluster = cluster;
+        }
 
-                if (IsAbsAdress)
-                    AdressFull = AdressFull.Remove(0, 1);
+        public void SetBackCluster(string cluster)
+        {
+            BackCluster = cluster;
+        }
 
-                if (AdressFull[AdressFull.Length - 1] == '*')
+        protected void ParseAdress(string adress)
+        {
+            Adress = adress;
+
+            if (!string.IsNullOrEmpty(Adress))
+                if (Adress[Adress.Length - 1] == '*')
                 {
                     DeliveryType = EDeliveryType.ToChildern;
-                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+                    Adress = Adress.Substring(0, Adress.Length - 2);
                 }
-                else if (AdressFull[AdressFull.Length - 1] == '!')
+                else if (Adress[Adress.Length - 1] == '!')
                 {
                     DeliveryType = EDeliveryType.ToClient;
-                    AdressFull = AdressFull.Substring(0, AdressFull.Length - 2);
+                    Adress = Adress.Substring(0, Adress.Length - 2);
                 }
-            }
-        }
-
-        public void SetAdress(IAdress adress)
-        {
-            AdressFull = adress.AdressFull;
-            _adressRef = adress;
-            IsAbsAdress = adress.IsAbsAdress;
-            DeliveryType = adress.DeliveryType;
-        }
-
-        public void SetBackAdress(string backAdress)
-        {
-            _backAdressRef = null;
-            BackAdressFull = backAdress;
-        }
-
-        public void PassCurrentAdressPart()
-        {
-            _index++;
-        }
-
-        public void PassAdressFull()
-        {
-            _index = Adress.Parts;
-        }
-
-        public bool IsCheckFirstPath => _index > 0;
-        public bool IsAdressOver => _index >= Adress.Parts;
-        public bool IsFaild { get; protected set; }
-
-        public virtual void Fail()
-        {
-            IsFaild = true;
-        }
-
-        public void AddTrace(string trace)
-        {
-            Traces.Add(trace);
-        }
-
-        public List<string> Trace()
-        {
-            return Traces;
         }
     }
 }

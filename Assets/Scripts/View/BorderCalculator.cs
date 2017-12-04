@@ -1,6 +1,4 @@
 ﻿using CMA;
-using CMA.Messages;
-using Model;
 using UnityEngine;
 
 namespace View
@@ -8,7 +6,7 @@ namespace View
     [RequireComponent(typeof(Camera))]
     public class BorderCalculator : MonoActor
     {
-        private Rect _border;
+        /* private Rect _border;
 
         protected override void Awake()
         {
@@ -31,7 +29,10 @@ namespace View
 
         protected override void Subscribe()
         {
-            Receive<Rect>(OnRectRequest);
+            PushMessage<Rect>(OnRectRequest);
+        }*/
+        protected override void Subscribe()
+        {
         }
     }
 }

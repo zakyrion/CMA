@@ -1,12 +1,10 @@
 ﻿using CMA;
-using Model;
-using UnityEngine;
 
 namespace View
 {
     public class Ship : MonoActor
     {
-        private Rect _border;
+        /*private Rect _border;
         [SerializeField] private float _cooldown;
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
@@ -65,6 +63,9 @@ namespace View
             }
         }
 
+        protected override void Subscribe()
+        {
+        }*/
         protected override void Subscribe()
         {
         }

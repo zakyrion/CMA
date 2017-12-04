@@ -12,24 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.using System.Collections;
 
-using System.Collections.Generic;
-using CMA.Messages;
-
 namespace CMA
 {
-    public interface IMailBox
+    public interface IDeliveryHelper
     {
-        ActorSystem System {get;}
-        IActor Actor { get; }
-        IMailBox Parent { get; set; }
-        List<IMailBox> Children { get; }
-        IAdress Adress { get; }
-
-        void PushMail(IMessage message);
-        void SendMail(IMessage message);
-        void AddChild(IMailBox mailBox);
-        void AddParent(IMailBox mailBox);
-        void RemoveChild(IMailBox mailBox);
-        void AddActor(IActor actor, string adress = null);
+        void PushMessage(object data, string backAdress = null, string backCluster = null);
     }
 }

@@ -36,7 +36,7 @@ namespace Model
             var destination = new Vector3(param.Borders.xMin - 2f, 0f,
                 param.Borders.yMin + (param.Borders.yMax - param.Borders.yMin) * (float) _random.NextDouble());
 
-            asteroid.Init(GetIndex, (float) (5f + 5f * _random.NextDouble()), destination);
+            //asteroid.Init(GetIndex, (float) (5f + 5f * _random.NextDouble()), destination);
 
             return asteroid;
         }

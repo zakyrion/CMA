@@ -14,13 +14,13 @@
 
 namespace CMA.Core
 {
-    internal class MailBoxBuilder : Builder<IMailBox, string>
+    internal class MailBoxBuilder : Builder<ICluster, string>
     {
         public override object Build(string param)
         {
             //TODO Create Web MailBoxes
 
-            return new MailBox(new Adress(param));
+            return null;
         }
     }
 }

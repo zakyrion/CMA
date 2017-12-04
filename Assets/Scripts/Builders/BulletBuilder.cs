@@ -38,7 +38,7 @@ namespace Model
             rocketGO.transform.position = param.Position;
 
             var bullet = rocketGO.GetComponent<Bullet>();
-            bullet.Init(GetIndex, param.Borders);
+            //bullet.Init(GetIndex, param.Borders);
 
             return bullet;
         }

@@ -1,13 +1,10 @@
 ﻿using CMA;
-using CMA.Messages;
-using Model;
-using UnityEngine;
 
 namespace View
 {
     public class Bullet : MonoActor
     {
-        private Rect _borders;
+        /*private Rect _borders;
         private bool _isSendDestroy;
         [SerializeField] private float _speed;
 
@@ -37,6 +34,9 @@ namespace View
             }
         }
 
+        protected override void Subscribe()
+        {
+        }*/
         protected override void Subscribe()
         {
         }

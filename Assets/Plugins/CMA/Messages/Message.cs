@@ -12,20 +12,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using UnityEngine;
+using System;
 
 namespace CMA.Messages
 {
     public class Message : Communication, IMessage
     {
-        protected object Lock = new object();
+        private Type _type;
+
         public Message(object data, IRespounceCode respounceCode = null)
         {
             Data = data;
             RespounceCode = respounceCode;
-
-            if (Data != null)
-                Key = Data.GetType().ToString();
         }
 
         public object Data { get; protected set; }
@@ -37,14 +35,16 @@ namespace CMA.Messages
             return (T) Data;
         }
 
-        public string Key { get; protected set; }
+        public string Key => KeyType.ToString();
+        public Type KeyType => _type ?? (_type = GetKeyType());
 
         public void ShowTrace()
         {
-            Debug.Log("Message: " + Key);
-            Debug.Log("Adress : " + Adress.AdressFull);
-            foreach (var trace in Traces)
-                Debug.Log("Trace: " + trace);
+        }
+
+        protected virtual Type GetKeyType()
+        {
+            return Data.GetType();
         }
     }
 }

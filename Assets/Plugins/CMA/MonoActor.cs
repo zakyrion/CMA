@@ -26,13 +26,12 @@ namespace CMA
 
         public IThreadController ThreadController => Actor.ThreadController;
         public string Adress => Actor.Adress;
+        public ICluster Cluster => Actor.Cluster;
 
-        public IMailBox MailBox => Actor.MailBox;
 
-
-        public virtual void OnAdd(IMailBox mailBox)
+        public void OnAdd(ICluster cluster, string adress)
         {
-            Actor.OnAdd(mailBox);
+            Actor.OnAdd(cluster, adress);
         }
 
         public void Quit()
@@ -44,24 +43,24 @@ namespace CMA
             }
         }
 
-        public void Send(object data, string adress = "")
+        public void Send(object data, string adress, string cluster = "")
         {
-            Actor.Send(data, adress);
+            Actor.Send(data, adress, cluster);
         }
 
-        public void Send(object data, Action action, string adress = "")
+        public void Send(object data, Action action, string adress, string cluster = "")
         {
-            Actor.Send(data, action, adress);
+            Actor.Send(data, action, adress, cluster);
         }
 
-        public void Ask<T>(Action<T> action, string adress = "")
+        public void Ask<TR>(Action<TR> action, string adress, string cluster = "")
         {
-            Actor.Ask(action, adress);
+            Actor.Ask(action, adress, cluster);
         }
 
-        public void Ask<TM, TR>(TM data, Action<TR> action, string adress = "")
+        public void Ask<TM, TR>(TM data, Action<TR> action, string adress, string cluster = "")
         {
-            Actor.Ask(data, action, adress);
+            Actor.Ask(data, action, adress, cluster);
         }
 
         public void PushMessage(IMessage message)

@@ -1,11 +1,8 @@
 ﻿using CMA;
-using CMA.Messages;
-using Model;
-using UnityEngine;
 
 public class UIService : MonoActor
 {
-    private Dificult _dificult;
+    /*private Dificult _dificult;
     [SerializeField] private GameObject _dificultPanel;
 
     [SerializeField] private GameObject _gameOver;
@@ -45,8 +42,8 @@ public class UIService : MonoActor
 
     protected override void Subscribe()
     {
-        Receive<ShowDificultUI>(OnShowDificultUI);
-        Receive<ShowGameOver>(OnShowGameOverUI);
+        PushMessage<ShowDificultUI>(OnShowDificultUI);
+        PushMessage<ShowGameOver>(OnShowGameOverUI);
     }
 
     public class ShowDificultUI
@@ -54,6 +51,9 @@ public class UIService : MonoActor
     }
 
     public class ShowGameOver
+    {
+    }*/
+    protected override void Subscribe()
     {
     }
 }

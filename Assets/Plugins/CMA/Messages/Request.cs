@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System;
+
 namespace CMA.Messages
 {
     /// <summary>
@@ -21,7 +23,11 @@ namespace CMA.Messages
     {
         public Request(object data, IRespounceCode respounceCode = null) : base(data, respounceCode)
         {
-            Key = typeof(R).ToString();
+        }
+
+        protected override Type GetKeyType()
+        {
+            return typeof(R);
         }
     }
 
@@ -29,7 +35,11 @@ namespace CMA.Messages
     {
         public SimpleRequest(IRespounceCode respounceCode = null) : base(null, respounceCode)
         {
-            Key = typeof(R).ToString();
+        }
+
+        protected override Type GetKeyType()
+        {
+            return typeof(R);
         }
     }
 }
