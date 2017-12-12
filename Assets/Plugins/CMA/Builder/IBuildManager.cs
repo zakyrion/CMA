@@ -17,7 +17,10 @@ namespace CMA
     public interface IBuildManager
     {
         void SubscribeBuilder(IBuilder builder);
+        void SubscribeBuilder(IActorBuilder builder);
         T Build<T>();
+        void Build<T>(ICluster cluster);
+        void Build<T>(ICluster cluster, object param);
         T Build<T>(object param);
     }
 }

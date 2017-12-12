@@ -17,19 +17,13 @@ using CMA.Messages;
 
 namespace CMA
 {
-    public interface ICluster : IReceiver
+    public interface ICompositor : IActor
     {
-        ActorSystem System { get; }
-        string Name { get; }
-        void OnAdd(ActorSystem system);
-        void AddActor(IActor actor, string adress);
-        void RemoveActor(string adress);
-        void RemoveActor(IActor actor);
-        void Send(IMessage message);
+        void AddComponent(IComponent component);
+        void RemoveComponent(IComponent component);
+        T GetComponent<T>() where T : IComponent;
 
-        void AskDeliveryHelper(Action<IDeliveryHelper> callback, string adress, string cluster,
-            EDeliveryType deliveryType);
-
-        void Quit();
+        void Receive<T>(Action<IMessage> @delegate);
+        void Receive<T>(Action<T, IMessage> @delegate);
     }
 }

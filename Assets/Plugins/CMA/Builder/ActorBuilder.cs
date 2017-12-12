@@ -12,43 +12,41 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using CMA.Messages;
-
 namespace CMA
 {
     /// <summary>
     /// </summary>
     /// <typeparam name="T">Result type</typeparam>
     /// <typeparam name="K">Param Type</typeparam>
-    public abstract class Builder<T, K> : IBuilder
+    public abstract class ActorBuilder<T, K> : IActorBuilder
     {
         public string Key => typeof(T).Name;
 
-        public virtual object Build()
+        public virtual object Build(ICluster cluster)
         {
-            return default(T);
+            return null;
         }
 
-        public object Build(object param)
+        public virtual object Build(ICluster cluster, object param)
         {
-            return Build((K) param);
+            return Build(cluster, (K) param);
         }
 
-        public abstract object Build(K param);
+        public abstract T Build(ICluster cluster, K param);
     }
 
     /// <summary>
     /// </summary>
     /// <typeparam name="T">Result type</typeparam>
-    public abstract class Builder<T> : IBuilder
+    public abstract class ActorBuilder<T> : IActorBuilder
     {
         public string Key => typeof(T).Name;
 
-        public abstract object Build();
+        public abstract object Build(ICluster cluster);
 
-        public object Build(object param)
+        public virtual object Build(ICluster cluster, object param)
         {
-            return Build((IMessage) param);
+            return Build(cluster);
         }
     }
 }

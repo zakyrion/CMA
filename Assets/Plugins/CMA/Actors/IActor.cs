@@ -20,9 +20,11 @@ namespace CMA
 {
     public interface IActor : IReceiver
     {
+        IMessageManager Manager { get; }
         ICluster Cluster { get; }
         IThreadController ThreadController { get; }
         string Adress { get; }
+        string Parent { get; }
 
         void OnAdd(ICluster cluster, string adress);
         void Quit();

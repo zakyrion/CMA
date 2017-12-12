@@ -26,10 +26,10 @@ namespace CMA.Messages
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
 
+        protected IThreadController ThreadController;
+
         protected Dictionary<Type, List<IMessageHandler>> TypedMessageRecievers =
             new Dictionary<Type, List<IMessageHandler>>();
-
-        protected IThreadController ThreadController;
 
         public MessageManager()
         {
@@ -89,15 +89,51 @@ namespace CMA.Messages
 
         public virtual void RemoveReceiver<T>(Action<T, IMessage> @delegate)
         {
-            var key = typeof(T).ToString();
+            var keyType = typeof(T);
+            var key = keyType.ToString();
 
             if (MessageRecievers.ContainsKey(key))
                 MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
 
+            if (TypedMessageRecievers.ContainsKey(keyType))
+                TypedMessageRecievers[keyType]
+                    .Remove(TypedMessageRecievers[keyType].Find(handler => handler.Contains(@delegate)));
+        }
+
+        public void RemoveReceiver<T>(Action<IMessage> @delegate)
+        {
             var keyType = typeof(T);
+            var key = keyType.ToString();
+
+            if (MessageRecievers.ContainsKey(key))
+                MessageRecievers[key].Remove(MessageRecievers[key].Find(handler => handler.Contains(@delegate)));
 
             if (TypedMessageRecievers.ContainsKey(keyType))
-                TypedMessageRecievers[keyType].Remove(TypedMessageRecievers[keyType].Find(handler => handler.Contains(@delegate)));
+                TypedMessageRecievers[keyType]
+                    .Remove(TypedMessageRecievers[keyType].Find(handler => handler.Contains(@delegate)));
+        }
+
+        public void RemoveByParent(object obj)
+        {
+            foreach (var kvp in TypedMessageRecievers)
+            {
+                var list = kvp.Value;
+                for (var i = 0; i < list.Count;)
+                    if (list[i].IsParent(obj))
+                        list.RemoveAt(i);
+                    else
+                        i++;
+            }
+
+            foreach (var kvp in MessageRecievers)
+            {
+                var list = kvp.Value;
+                for (var i = 0; i < list.Count;)
+                    if (list[i].IsParent(obj))
+                        list.RemoveAt(i);
+                    else
+                        i++;
+            }
         }
 
         public virtual void Responce(IMessage message)

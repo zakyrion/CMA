@@ -11,6 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 using System;
 
 namespace CMA.Messages
@@ -21,6 +22,7 @@ namespace CMA.Messages
         Delegate Delegate { get; }
         bool Contains(Delegate @delegate);
         bool Equals(IMessageHandler handler);
+        bool IsParent(object obj);
         void Invoke(IMessage message);
     }
 }

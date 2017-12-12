@@ -26,8 +26,9 @@ namespace CMA
 
         public IThreadController ThreadController => Actor.ThreadController;
         public string Adress => Actor.Adress;
+        public string Parent => Actor.Parent;
+        public IMessageManager Manager => Actor.Manager;
         public ICluster Cluster => Actor.Cluster;
-
 
         public void OnAdd(ICluster cluster, string adress)
         {
@@ -105,12 +106,12 @@ namespace CMA
             Subscribe();
         }
 
-        private void OnKill(IMessage obj)
+        protected void OnKill(IMessage obj)
         {
             Actor.ThreadController.Invoke(OnKillHandler);
         }
 
-        private void OnKillHandler()
+        protected void OnKillHandler()
         {
             Quit();
         }

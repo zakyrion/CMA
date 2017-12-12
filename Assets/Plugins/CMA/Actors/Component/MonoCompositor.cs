@@ -12,35 +12,35 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace CMA.Core
+using CMA.Core;
+using CMA.Messages;
+
+namespace CMA
 {
-    public static class Core
+    public abstract class MonoCompositor : MonoActor, ICompositor
     {
-        private static readonly BuildManager BuildManager = new BuildManager();
+        protected ActorCompositor Compositor;
 
-        static Core()
+        public void AddComponent(IComponent component)
         {
-            SubscribeBuilder(new MailBoxBuilder());
+            Compositor.AddComponent(component);
         }
 
-        public static void SubscribeBuilder(IBuilder builder)
+        public void RemoveComponent(IComponent component)
         {
-            BuildManager.SubscribeBuilder(builder);
+            Compositor.RemoveComponent(component);
         }
 
-        public static void SubscribeBuilder(IActorBuilder builder)
+        T ICompositor.GetComponent<T>()
         {
-            BuildManager.SubscribeBuilder(builder);
+            return Compositor.GetComponent<T>();
         }
 
-        public static T Get<T>()
+        protected override void Awake()
         {
-            return BuildManager.Build<T>();
-        }
-
-        public static T Get<T>(object param)
-        {
-            return BuildManager.Build<T>(param);
+            Actor = Compositor = new ActorCompositor(new MainThreadController());
+            Receive<Kill>(OnKill);
+            Subscribe();
         }
     }
 }

@@ -39,6 +39,11 @@ namespace CMA.Messages
             return Contains(handler.Delegate);
         }
 
+        public bool IsParent(object obj)
+        {
+            return DelegateField.Target == obj;
+        }
+
         public void Invoke(IMessage message)
         {
             DelegateField(message);

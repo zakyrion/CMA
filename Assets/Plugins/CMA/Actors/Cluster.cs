@@ -25,18 +25,21 @@ namespace CMA
         protected Dictionary<string, IActor> Actors = new Dictionary<string, IActor>();
         protected Dictionary<string, List<IActor>> Children = new Dictionary<string, List<IActor>>();
         protected Dictionary<string, Queue<IMessage>> MailsWaiting = new Dictionary<string, Queue<IMessage>>();
+        protected MessageManager MessageManager;
         protected IThreadController ThreadController;
 
         public Cluster(string name)
         {
             Name = name;
             ThreadController = new SingleThreadController();
+            MessageManager = new MessageManager(ThreadController);
         }
 
         public Cluster(string name, IThreadController threadController)
         {
             Name = name;
             ThreadController = threadController;
+            MessageManager = new MessageManager(ThreadController);
         }
 
         public ActorSystem System { get; protected set; }
@@ -45,11 +48,17 @@ namespace CMA
         public void OnAdd(ActorSystem system)
         {
             System = system;
+            Subscribe();
         }
 
         public void AddActor(IActor actor, string adress)
         {
             ThreadController.Invoke(AddActorHandler, new Container<IActor, string>(actor, adress));
+        }
+
+        public void ReplaceActor(string oldAdress, string newAdress)
+        {
+            ThreadController.Invoke(ReplaceActorHandler, new Container<string, string>(oldAdress, newAdress));
         }
 
         public void RemoveActor(string adress)
@@ -84,6 +93,22 @@ namespace CMA
             Send(message);
         }
 
+        protected void ReplaceActorHandler(Container<string, string> container)
+        {
+            if (Actors.ContainsKey(container.ParamOne))
+            {
+                var actor = Actors[container.ParamOne];
+                Actors.Remove(container.ParamOne);
+                actor.Quit();
+
+                var parent = GetParentAdress(container.ParamOne);
+                if (parent != null)
+                    Children[parent].Remove(actor);
+
+                AddActorHandler(new Container<IActor, string>(actor,container.ParamTwo));
+            }
+        }
+
         public void QuitHandler()
         {
             System.RemoveCluster(this);
@@ -114,13 +139,13 @@ namespace CMA
             }
         }
 
-        protected void SendHandler(IMessage message)
+        protected virtual void SendHandler(IMessage message)
         {
             if (message.Cluster == null || message.Cluster == Name)
             {
-                if (message.Adress == null)
+                if (string.IsNullOrEmpty(message.Adress))
                 {
-                    PushMessage(message);
+                    MessageManager.Responce(message);
                 }
                 else
                 {
@@ -169,7 +194,7 @@ namespace CMA
             }
         }
 
-        protected string GetParentAdress(string adress)
+        public static string GetParentAdress(string adress)
         {
             var lastIndex = adress.LastIndexOf("/", StringComparison.Ordinal);
             if (lastIndex > 0)
@@ -197,6 +222,26 @@ namespace CMA
             }
 
             container.ParamOne.OnAdd(this, container.ParamTwo);
+        }
+
+        protected virtual void Subscribe()
+        {
+            Receive<AddActor>(OnAddActor);
+        }
+
+        private void OnAddActor(AddActor addActor, IMessage message)
+        {
+            AddActorHandler(new Container<IActor, string>(addActor.Param1, addActor.Param2));
+        }
+
+        public virtual void Receive<T>(Action<IMessage> @delegate)
+        {
+            MessageManager.Receive<T>(@delegate);
+        }
+
+        public virtual void Receive<T>(Action<T, IMessage> @delegate)
+        {
+            MessageManager.Receive(@delegate);
         }
 
         protected struct Container<T, K>

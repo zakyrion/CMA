@@ -18,11 +18,17 @@ namespace CMA
 {
     public class BuildManager : IBuildManager
     {
+        protected Dictionary<string, IActorBuilder> ActorBuilders = new Dictionary<string, IActorBuilder>();
         protected Dictionary<string, IBuilder> Builders = new Dictionary<string, IBuilder>();
 
         public virtual void SubscribeBuilder(IBuilder builder)
         {
             Builders[builder.Key] = builder;
+        }
+
+        public void SubscribeBuilder(IActorBuilder builder)
+        {
+            ActorBuilders[builder.Key] = builder;
         }
 
         public virtual T Build<T>()
@@ -34,6 +40,22 @@ namespace CMA
                 result = (T) Builders[key].Build();
 
             return result;
+        }
+
+        public void Build<T>(ICluster cluster)
+        {
+            var key = typeof(T).Name;
+
+            if (ActorBuilders.ContainsKey(key))
+                ActorBuilders[key].Build(cluster);
+        }
+
+        public void Build<T>(ICluster cluster, object param)
+        {
+            var key = typeof(T).Name;
+
+            if (ActorBuilders.ContainsKey(key))
+                ActorBuilders[key].Build(cluster, param);
         }
 
         public T Build<T>(object param)

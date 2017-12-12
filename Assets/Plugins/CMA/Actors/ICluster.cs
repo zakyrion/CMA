@@ -10,24 +10,27 @@
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
-//   limitations under the License.
+//   limitations under the License.using System.Collections;
 
 using System;
+using CMA.Messages;
 
-namespace CMA.Messages
+namespace CMA
 {
-    public interface IMessageManager
+    public interface ICluster : IReceiver
     {
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
+        ActorSystem System { get; }
+        string Name { get; }
+        void OnAdd(ActorSystem system);
+        void AddActor(IActor actor, string adress);
+        void ReplaceActor(string oldAdress, string newAdress);
+        void RemoveActor(string adress);
+        void RemoveActor(IActor actor);
+        void Send(IMessage message);
 
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-        void RemoveReceiver<T>(Action<IMessage> @delegate);
+        void AskDeliveryHelper(Action<IDeliveryHelper> callback, string adress, string cluster,
+            EDeliveryType deliveryType);
 
-        void RemoveByParent(object obj);
-
-        void Responce(IMessage message);
         void Quit();
     }
 }

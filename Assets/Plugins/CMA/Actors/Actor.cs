@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using CMA.Core;
 using CMA.Messages;
-using UnityEngine;
 
 namespace CMA
 {
@@ -56,13 +55,14 @@ namespace CMA
         public ICluster Cluster { get; protected set; }
         public IThreadController ThreadController { get; protected set; }
         public string Adress { get; protected set; }
+        public string Parent { get; protected set; }
 
-        public void OnAdd(ICluster cluster, string adress)
+        public virtual void OnAdd(ICluster cluster, string adress)
         {
             //Debug.Log($"Add Actor to Cluster: {cluster.Name} By Adress: {adress}");
             Cluster = cluster;
             Adress = adress;
-
+            Parent = CMA.Cluster.GetParentAdress(Adress);
             foreach (var message in _forSend)
             {
                 /*if (string.IsNullOrEmpty(mailBox.Adress.AdressFull))

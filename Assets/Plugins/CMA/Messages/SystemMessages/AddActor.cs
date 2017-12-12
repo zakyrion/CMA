@@ -14,9 +14,9 @@
 
 namespace CMA.Messages
 {
-    public class AddActor : Container<IActor>
+    public class AddActor : Container<IActor, string>
     {
-        public AddActor(IActor data) : base(data)
+        public AddActor(IActor data, string adress) : base(data, adress)
         {
         }
     }

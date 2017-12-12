@@ -12,22 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
-namespace CMA.Messages
+namespace CMA
 {
-    public interface IMessageManager
+    public interface IActorBuilder
     {
-        void Receive<T>(Action<IMessage> @delegate);
-        void Receive<T>(Action<T, IMessage> @delegate);
-
-        bool CanRespounce(IMessage message);
-        void RemoveReceiver<T>(Action<T, IMessage> @delegate);
-        void RemoveReceiver<T>(Action<IMessage> @delegate);
-
-        void RemoveByParent(object obj);
-
-        void Responce(IMessage message);
-        void Quit();
+        string Key { get; }
+        object Build(ICluster cluster);
+        object Build(ICluster cluster,object param);
     }
 }
