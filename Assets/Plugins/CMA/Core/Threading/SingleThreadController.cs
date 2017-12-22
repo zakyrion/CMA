@@ -22,6 +22,7 @@ namespace CMA.Core
     public class SingleThreadController : ThreadController
     {
         private readonly AutoResetEvent _event = new AutoResetEvent(false);
+        private SpinWait _spinWait = new SpinWait();
 
         protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
         protected Thread Thread;
@@ -58,6 +59,8 @@ namespace CMA.Core
 
                 while (Actions.TryDequeue(out action))
                     action();
+
+                _spinWait.SpinOnce();
             }
         }
 

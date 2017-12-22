@@ -13,7 +13,9 @@
 //   limitations under the License.using System.Collections;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
@@ -22,24 +24,25 @@ namespace CMA
 {
     public class Cluster : ICluster
     {
-        protected Dictionary<string, IActor> Actors = new Dictionary<string, IActor>();
-        protected Dictionary<string, List<IActor>> Children = new Dictionary<string, List<IActor>>();
-        protected Dictionary<string, Queue<IMessage>> MailsWaiting = new Dictionary<string, Queue<IMessage>>();
+        protected ConcurrentDictionary<string, IActor> Actors = new ConcurrentDictionary<string, IActor>();
+        protected ConcurrentDictionary<string, List<IActor>> Children = new ConcurrentDictionary<string, List<IActor>>();
+        protected ConcurrentDictionary<string, ConcurrentQueue<IMessage>> MailsWaiting = new ConcurrentDictionary<string, ConcurrentQueue<IMessage>>();
         protected MessageManager MessageManager;
         protected IThreadController ThreadController;
+        ReaderWriterLock _lock = new ReaderWriterLock();
 
         public Cluster(string name)
         {
             Name = name;
             ThreadController = new SingleThreadController();
-            MessageManager = new MessageManager(ThreadController);
+            MessageManager = new MessageManager();
         }
 
         public Cluster(string name, IThreadController threadController)
         {
             Name = name;
             ThreadController = threadController;
-            MessageManager = new MessageManager(ThreadController);
+            MessageManager = new MessageManager();
         }
 
         public ActorSystem System { get; protected set; }
@@ -73,7 +76,8 @@ namespace CMA
 
         public void Send(IMessage message)
         {
-            ThreadController.Invoke(SendHandler, message);
+            //ThreadController.Invoke(SendHandler, message);
+            SendHandler(message);
         }
 
         public void AskDeliveryHelper(Action<IDeliveryHelper> callback, string adress, string cluster,
@@ -98,14 +102,18 @@ namespace CMA
             if (Actors.ContainsKey(container.ParamOne))
             {
                 var actor = Actors[container.ParamOne];
-                Actors.Remove(container.ParamOne);
+                Actors.TryRemove(container.ParamOne, out actor);
                 actor.Quit();
+
+                _lock.AcquireWriterLock(100);
 
                 var parent = GetParentAdress(container.ParamOne);
                 if (parent != null)
                     Children[parent].Remove(actor);
 
-                AddActorHandler(new Container<IActor, string>(actor,container.ParamTwo));
+                _lock.ReleaseWriterLock();
+
+                AddActorHandler(new Container<IActor, string>(actor, container.ParamTwo));
             }
         }
 
@@ -116,7 +124,10 @@ namespace CMA
                 kvp.Value.Quit();
 
             Actors.Clear();
+
+            _lock.AcquireWriterLock(100);
             Children.Clear();
+            _lock.ReleaseWriterLock();
         }
 
         protected void AskDeliveryHelperHandler(ReceiversAsk ask)
@@ -128,8 +139,12 @@ namespace CMA
                 if (ask.DeliveryType != EDeliveryType.ToChildern && Actors.ContainsKey(ask.Adress))
                     receivers.Add(Actors[ask.Adress]);
 
+                _lock.AcquireReaderLock(100);
+
                 if (ask.DeliveryType != EDeliveryType.ToClient && Children.ContainsKey(ask.Adress))
                     receivers.AddRange(Children[ask.Adress]);
+
+                _lock.ReleaseReaderLock();
 
                 ask.Callback(new DeliveryHelper(receivers));
             }
@@ -145,38 +160,66 @@ namespace CMA
             {
                 if (string.IsNullOrEmpty(message.Adress))
                 {
-                    MessageManager.Responce(message);
+                    ThreadController.Invoke(MessageManager.Responce, message);
                 }
                 else
                 {
-                    if (Actors.ContainsKey(message.Adress))
+                    //if (Actors.ContainsKey(message.Adress))
                     {
                         if (message.DeliveryType != EDeliveryType.ToChildern)
                         {
-                            var actor = Actors[message.Adress];
-                            actor.PushMessage(message);
+                            IActor actor = null;
+                            if (Actors.TryGetValue(message.Adress, out actor))
+                                actor.PushMessage(message);
+                            else
+                            {
+                                _lock.AcquireWriterLock(100);
+
+                                if (!MailsWaiting.ContainsKey(message.Adress))
+                                    MailsWaiting.TryAdd(message.Adress, new ConcurrentQueue<IMessage>());
+
+                                MailsWaiting[message.Adress].Enqueue(message);
+                                _lock.ReleaseWriterLock();
+                            }
+                        }
+                        else if(!Actors.ContainsKey(message.Adress))
+                        {
+                            _lock.AcquireWriterLock(100);
+
+                            if (!MailsWaiting.ContainsKey(message.Adress))
+                                MailsWaiting.TryAdd(message.Adress, new ConcurrentQueue<IMessage>());
+
+                            MailsWaiting[message.Adress].Enqueue(message);
+                            _lock.ReleaseWriterLock();
                         }
 
                         if (message.DeliveryType != EDeliveryType.ToClient)
                         {
+                            _lock.AcquireReaderLock(1000);
+
                             var children = Children[message.Adress];
                             for (var i = 0; i < children.Count; i++)
                                 children[i].PushMessage(message);
+
+                            _lock.ReleaseReaderLock();
                         }
                     }
-                    else
+                    /*else
                     {
                         if (!MailsWaiting.ContainsKey(message.Adress))
-                            MailsWaiting.Add(message.Adress, new Queue<IMessage>());
+                            MailsWaiting.TryAdd(message.Adress, new Queue<IMessage>());
 
                         MailsWaiting[message.Adress].Enqueue(message);
-                    }
+                    }*/
                 }
             }
             else
             {
-                message.SetBackCluster(Name);
-                System.PushMessage(message);
+                ThreadController.Invoke(() =>
+                {
+                    message.SetBackCluster(Name);
+                    System.PushMessage(message);
+                });
             }
         }
 
@@ -185,12 +228,17 @@ namespace CMA
             if (Actors.ContainsKey(adress))
             {
                 var actor = Actors[adress];
-                Actors.Remove(adress);
+                Actors.TryRemove(adress, out actor);
                 actor.Quit();
 
                 var parent = GetParentAdress(adress);
+
+                _lock.AcquireWriterLock(100);
+
                 if (parent != null)
                     Children[parent].Remove(actor);
+
+                _lock.ReleaseWriterLock();
             }
         }
 
@@ -204,21 +252,27 @@ namespace CMA
 
         protected void AddActorHandler(Container<IActor, string> container)
         {
-            Actors.Add(container.ParamTwo, container.ParamOne);
+            Actors.TryAdd(container.ParamTwo, container.ParamOne);
 
             var parent = GetParentAdress(container.ParamTwo);
             if (parent != null)
             {
+                _lock.AcquireWriterLock(100);
+
                 if (!Children.ContainsKey(parent))
                     Children[parent] = new List<IActor>();
                 Children[parent].Add(container.ParamOne);
+
+                _lock.ReleaseWriterLock();
             }
 
             if (MailsWaiting.ContainsKey(container.ParamTwo))
             {
                 var messages = MailsWaiting[container.ParamTwo];
+                IMessage message = null;
                 while (messages.Count > 0)
-                    SendHandler(messages.Dequeue());
+                    if (messages.TryDequeue(out message))
+                        SendHandler(message);
             }
 
             container.ParamOne.OnAdd(this, container.ParamTwo);

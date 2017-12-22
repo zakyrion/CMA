@@ -29,7 +29,7 @@ namespace CMA
         public Actor()
         {
             ThreadController = new ThreadPoolController();
-            Manager = new MessageManager(ThreadController);
+            Manager = new MessageManager();
 
             Receive<CallBack>(OnCallback);
             Receive<Kill>(OnKill);
@@ -40,7 +40,7 @@ namespace CMA
         public Actor(IThreadController threadController)
         {
             ThreadController = threadController;
-            Manager = new MessageManager(ThreadController);
+            Manager = new MessageManager();
 
             Receive<CallBack>(OnCallback);
             Receive<Kill>(OnKill);
@@ -188,7 +188,7 @@ namespace CMA
 
         public void PushMessage(IMessage message)
         {
-            Manager.Responce(message);
+            ThreadController.Invoke(Manager.Responce, message);
         }
 
         public void Respounce(IMessage message, object data = null)

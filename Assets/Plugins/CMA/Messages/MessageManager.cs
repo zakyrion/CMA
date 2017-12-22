@@ -14,7 +14,6 @@
 
 using System;
 using System.Collections.Generic;
-using CMA.Core;
 using UnityEngine;
 
 namespace CMA.Messages
@@ -26,20 +25,8 @@ namespace CMA.Messages
         protected Dictionary<string, List<IMessageHandler>> MessageRecievers =
             new Dictionary<string, List<IMessageHandler>>();
 
-        protected IThreadController ThreadController;
-
         protected Dictionary<Type, List<IMessageHandler>> TypedMessageRecievers =
             new Dictionary<Type, List<IMessageHandler>>();
-
-        public MessageManager()
-        {
-            ThreadController = new ThreadPoolController();
-        }
-
-        public MessageManager(IThreadController threadController)
-        {
-            ThreadController = threadController;
-        }
 
         public virtual void Quit()
         {
@@ -138,27 +125,24 @@ namespace CMA.Messages
 
         public virtual void Responce(IMessage message)
         {
-            ThreadController.Invoke(HandleMessage, message);
-        }
-
-        private void HandleMessage(IMessage message)
-        {
             try
             {
+                List<IMessageHandler> list = null;
+
                 var keyType = message.KeyType;
-                if (TypedMessageRecievers.ContainsKey(keyType))
+                if (TypedMessageRecievers.TryGetValue(keyType, out list))
                 {
-                    for (var i = 0; i < TypedMessageRecievers[keyType].Count; i++)
+                    for (var i = 0; i < list.Count; i++)
                         if (!IsQuit)
-                            TypedMessageRecievers[keyType][i].Invoke(message);
+                            list[i].Invoke(message);
                 }
                 else
                 {
                     var key = message.Key;
-                    if (MessageRecievers.ContainsKey(key))
-                        for (var i = 0; i < MessageRecievers[key].Count; i++)
+                    if (MessageRecievers.TryGetValue(key, out list))
+                        for (var i = 0; i < list.Count; i++)
                             if (!IsQuit)
-                                MessageRecievers[key][i].Invoke(message);
+                                list[i].Invoke(message);
                 }
             }
             catch (Exception exception)

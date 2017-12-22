@@ -217,13 +217,26 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Plugins\CMA\Actor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Actor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Cluster.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Component\ActorCompositor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Component\Component.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Component\IComponent.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Component\ICompositor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\Component\MonoCompositor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\EDeliveryType.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\IActor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\ICluster.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\IDeliveryHelper.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\IReceiver.cs" />
+    <Compile Include="Assets\Plugins\CMA\Actors\MonoActor.cs" />
+    <Compile Include="Assets\Plugins\CMA\Builder\ActorBuilder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\Builder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\BuildManager.cs" />
+    <Compile Include="Assets\Plugins\CMA\Builder\IActorBuilder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\IBuilder.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\IBuildManager.cs" />
     <Compile Include="Assets\Plugins\CMA\Builder\MailBoxBuilder.cs" />
-    <Compile Include="Assets\Plugins\CMA\Cluster.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\ActorSystem.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Core.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\IUpdated.cs" />
@@ -235,11 +248,6 @@
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadPoolController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\UpdateService.cs" />
-    <Compile Include="Assets\Plugins\CMA\EDeliveryType.cs" />
-    <Compile Include="Assets\Plugins\CMA\IActor.cs" />
-    <Compile Include="Assets\Plugins\CMA\ICluster.cs" />
-    <Compile Include="Assets\Plugins\CMA\IDeliveryHelper.cs" />
-    <Compile Include="Assets\Plugins\CMA\IReceiver.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Communication.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\Container.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\DeliveryHelper.cs" />
@@ -262,7 +270,6 @@
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\Kill.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\RespounceCode.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\UpdatePath.cs" />
-    <Compile Include="Assets\Plugins\CMA\MonoActor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

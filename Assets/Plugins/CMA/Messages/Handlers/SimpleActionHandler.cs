@@ -20,7 +20,6 @@ namespace CMA.Messages
     public class SimpleActionHandler<T> : ISimpleActionHandler
     {
         private readonly Action<T> _action;
-        private readonly object _lock = new object();
         private readonly T _param;
 
         public SimpleActionHandler(Action<T> action, T param)
@@ -31,17 +30,13 @@ namespace CMA.Messages
 
         public void Invoke()
         {
-            lock (_lock)
+            try
             {
-                try
-                {
-                    _action?.Invoke(_param);
-
-                }
-                catch (Exception e)
-                {
-                    Debug.Log($"SimpleActionHandler exception: {e}");
-                }
+                _action?.Invoke(_param);
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"SimpleActionHandler exception: {e}");
             }
         }
     }
