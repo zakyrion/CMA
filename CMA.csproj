@@ -229,6 +229,7 @@
     <Compile Include="Assets\Scripts\Model\Actors\AsteroidManager.cs" />
     <Compile Include="Assets\Scripts\Model\Actors\BulletManager.cs" />
     <Compile Include="Assets\Scripts\Model\Actors\Main.cs" />
+    <Compile Include="Assets\Scripts\Model\Constant.cs" />
     <Compile Include="Assets\Scripts\Model\Dificult.cs" />
     <Compile Include="Assets\Scripts\PerformanceTest\Container.cs" />
     <Compile Include="Assets\Scripts\PerformanceTest\PerformanceTest.cs" />
@@ -238,6 +239,7 @@
     <Compile Include="Assets\Scripts\View\Asteroid.cs" />
     <Compile Include="Assets\Scripts\View\BorderCalculator.cs" />
     <Compile Include="Assets\Scripts\View\Bullet.cs" />
+    <Compile Include="Assets\Scripts\View\OctonView.cs" />
     <Compile Include="Assets\Scripts\View\Ship.cs" />
     <Compile Include="Assets\Scripts\View\StarGameManager.cs" />
   </ItemGroup>

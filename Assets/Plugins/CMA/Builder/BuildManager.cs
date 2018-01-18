@@ -42,22 +42,6 @@ namespace CMA
             return result;
         }
 
-        public void Build<T>(ICluster cluster)
-        {
-            var key = typeof(T).Name;
-
-            if (ActorBuilders.ContainsKey(key))
-                ActorBuilders[key].Build(cluster);
-        }
-
-        public void Build<T>(ICluster cluster, object param)
-        {
-            var key = typeof(T).Name;
-
-            if (ActorBuilders.ContainsKey(key))
-                ActorBuilders[key].Build(cluster, param);
-        }
-
         public T Build<T>(object param)
         {
             var result = default(T);
@@ -67,6 +51,26 @@ namespace CMA
                 result = (T) Builders[key].Build(param);
 
             return result;
+        }
+
+        public T Build<T>(ICluster cluster)
+        {
+            var key = typeof(T).Name;
+
+            if (ActorBuilders.ContainsKey(key))
+                return (T) ActorBuilders[key].Build(cluster);
+
+            return default(T);
+        }
+
+        public T Build<T>(ICluster cluster, object param)
+        {
+            var key = typeof(T).Name;
+
+            if (ActorBuilders.ContainsKey(key))
+                return (T) ActorBuilders[key].Build(cluster, param);
+
+            return default(T);
         }
     }
 }

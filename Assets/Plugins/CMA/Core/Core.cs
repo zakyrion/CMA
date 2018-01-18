@@ -42,5 +42,15 @@ namespace CMA.Core
         {
             return BuildManager.Build<T>(param);
         }
+
+        public static T Get<T>(ICluster cluster)
+        {
+            return BuildManager.Build<T>(cluster);
+        }
+
+        public static T Get<T>(ICluster cluster, object param)
+        {
+            return BuildManager.Build<T>(cluster, param);
+        }
     }
 }

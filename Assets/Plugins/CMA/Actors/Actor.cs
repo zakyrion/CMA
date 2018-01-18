@@ -21,7 +21,10 @@ namespace CMA
 {
     public class Actor : IActor
     {
+        private readonly List<string> _conditions = new List<string>();
+        private readonly List<IMessage> _forNewController = new List<IMessage>();
         private readonly List<IMessage> _forSend = new List<IMessage>();
+        private bool _isControllerFine = true;
         private bool _isQuit;
         private int _respounceId;
         protected Dictionary<IRespounceCode, IActionHandler> Actions = new Dictionary<IRespounceCode, IActionHandler>();
@@ -33,6 +36,7 @@ namespace CMA
 
             Receive<CallBack>(OnCallback);
             Receive<Kill>(OnKill);
+            Receive<ChangeThreadController>(OnChangeThreadController);
 
             Subscribe();
         }
@@ -71,6 +75,9 @@ namespace CMA
                 Cluster.Send(message);
             }
 
+            foreach (var condition in _conditions)
+                Cluster.AddGlobalCall(condition, this);
+
             _forSend.Clear();
         }
 
@@ -78,10 +85,32 @@ namespace CMA
         {
             if (!_isQuit)
             {
+                foreach (var condition in _conditions)
+                    Cluster.RemoveGlobalCall(condition, this);
+
                 _isQuit = true;
                 Cluster.RemoveActor(Adress);
                 ThreadController.Remove();
                 Manager.Quit();
+            }
+        }
+
+        public void Send(string condition, object data)
+        {
+            var message = new Message(data);
+
+            if (Cluster != null)
+            {
+                message.Init("", Adress);
+                message.SetCluster(Cluster.Name);
+                message.AddCondition(condition);
+                Cluster.Send(message);
+            }
+            else
+            {
+                message.SetAdress("", "");
+                message.AddCondition(condition);
+                _forSend.Add(message);
             }
         }
 
@@ -97,7 +126,7 @@ namespace CMA
             }
             else
             {
-                message.SetAdress(adress,cluster);
+                message.SetAdress(adress, cluster);
                 _forSend.Add(message);
             }
 
@@ -188,7 +217,10 @@ namespace CMA
 
         public void PushMessage(IMessage message)
         {
-            ThreadController.Invoke(Manager.Responce, message);
+            if (_isControllerFine)
+                ThreadController.Invoke(Manager.Responce, message);
+            else
+                _forNewController.Add(message);
         }
 
         public void Respounce(IMessage message, object data = null)
@@ -213,7 +245,6 @@ namespace CMA
         protected void AskDeliveryHelper(string adress, string cluster, EDeliveryType deliveryType,
             Action<IDeliveryHelper> callback)
         {
-
             Cluster.AskDeliveryHelper(receiver => ThreadController.Invoke(callback, receiver), adress, cluster,
                 deliveryType);
         }
@@ -248,6 +279,23 @@ namespace CMA
         {
         }
 
+        protected virtual void OnChangeThreadController(ChangeThreadController data, IMessage message)
+        {
+            _isControllerFine = false;
+
+            ThreadController.Invoke(() =>
+            {
+                ThreadController.Remove();
+                ThreadController = data.Data;
+                _isControllerFine = true;
+
+                foreach (var message1 in _forNewController)
+                    PushMessage(message1);
+
+                _forNewController.Clear();
+            });
+        }
+
         internal virtual void OnCallback(CallBack callBack, IMessage message)
         {
             //Debug.Log(
@@ -263,6 +311,22 @@ namespace CMA
 
         public virtual void Receive<T>(Action<T, IMessage> @delegate)
         {
+            Manager.Receive(@delegate);
+        }
+
+        public virtual void Receive<T>(string condition, Action<IMessage> @delegate)
+        {
+            _conditions.Add(condition);
+            Cluster?.AddGlobalCall(condition, this);
+
+            Manager.Receive<T>(@delegate);
+        }
+
+        public virtual void Receive<T>(string condition, Action<T, IMessage> @delegate)
+        {
+            _conditions.Add(condition);
+            Cluster?.AddGlobalCall(condition, this);
+
             Manager.Receive(@delegate);
         }
     }

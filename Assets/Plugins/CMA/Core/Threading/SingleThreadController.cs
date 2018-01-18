@@ -27,9 +27,10 @@ namespace CMA.Core
         protected ConcurrentQueue<Action> Actions = new ConcurrentQueue<Action>();
         protected Thread Thread;
 
-        public SingleThreadController()
+        public SingleThreadController(ThreadPriority priority = ThreadPriority.Normal)
         {
             Thread = new Thread(Update);
+            Thread.Priority = priority;
             Thread.Start();
         }
 
@@ -66,7 +67,8 @@ namespace CMA.Core
 
         public override void Remove()
         {
-            Thread.Abort();
+            if (Thread.IsAlive)
+                Thread.Abort();
         }
     }
 }

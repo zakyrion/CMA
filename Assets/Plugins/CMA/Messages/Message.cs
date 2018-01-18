@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 
 namespace CMA.Messages
 {
@@ -30,6 +31,8 @@ namespace CMA.Messages
 
         public IRespounceCode RespounceCode { get; protected set; }
 
+        public List<string> Conditions { get; protected set; }
+
         public T GetData<T>()
         {
             return (T) Data;
@@ -40,6 +43,14 @@ namespace CMA.Messages
 
         public void ShowTrace()
         {
+        }
+
+        public void AddCondition(string condition)
+        {
+            if (Conditions == null)
+                Conditions = new List<string>();
+
+            Conditions.Add(condition);
         }
 
         protected virtual Type GetKeyType()

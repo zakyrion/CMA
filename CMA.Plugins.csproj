@@ -243,6 +243,7 @@
     <Compile Include="Assets\Plugins\CMA\Core\IUpdateService.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\IThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\MainThreadController.cs" />
+    <Compile Include="Assets\Plugins\CMA\Core\Threading\PoolableSingleThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\SimpleThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\SingleThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Core\Threading\ThreadController.cs" />
@@ -266,6 +267,7 @@
     <Compile Include="Assets\Plugins\CMA\Messages\Request.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\AddActor.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\CallBack.cs" />
+    <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\ChangeThreadController.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\IRespounceCode.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\Kill.cs" />
     <Compile Include="Assets\Plugins\CMA\Messages\SystemMessages\RespounceCode.cs" />

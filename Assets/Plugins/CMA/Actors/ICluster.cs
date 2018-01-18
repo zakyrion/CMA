@@ -26,7 +26,13 @@ namespace CMA
         void ReplaceActor(string oldAdress, string newAdress);
         void RemoveActor(string adress);
         void RemoveActor(IActor actor);
+
         void Send(IMessage message);
+        void Send(string condition, object data);
+        void Send(object data, string adress, string cluster = "");
+
+        void AddGlobalCall(string condition, IActor actor);
+        void RemoveGlobalCall(string condition, IActor actor);
 
         void AskDeliveryHelper(Action<IDeliveryHelper> callback, string adress, string cluster,
             EDeliveryType deliveryType);

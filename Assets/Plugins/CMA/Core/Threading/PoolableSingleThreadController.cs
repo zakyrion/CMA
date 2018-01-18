@@ -12,15 +12,27 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace CMA
+namespace CMA.Core
 {
-    public interface IBuildManager
+    public class PoolableSingleThreadController : SingleThreadController
     {
-        void SubscribeBuilder(IBuilder builder);
-        void SubscribeBuilder(IActorBuilder builder);
-        T Build<T>();
-        T Build<T>(ICluster cluster);
-        T Build<T>(ICluster cluster, object param);
-        T Build<T>(object param);
+        private int _usersCount;
+
+        public PoolableSingleThreadController(int initCount = 0)
+        {
+            _usersCount = initCount;
+        }
+
+        public void IncreaseLink()
+        {
+            _usersCount++;
+        }
+
+        public override void Remove()
+        {
+            if (--_usersCount <= 0)
+                if (Thread.IsAlive)
+                    Thread.Abort();
+        }
     }
 }

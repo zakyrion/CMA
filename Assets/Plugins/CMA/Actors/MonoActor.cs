@@ -44,6 +44,11 @@ namespace CMA
             }
         }
 
+        public void Send(string condition, object data)
+        {
+            Actor.Send(condition,data);
+        }
+
         public void Send(object data, string adress, string cluster = "")
         {
             Actor.Send(data, adress, cluster);
@@ -94,6 +99,16 @@ namespace CMA
         public virtual void Receive<T>(Action<T, IMessage> @delegate)
         {
             Actor.Receive(@delegate);
+        }
+
+        public virtual void Receive<T>(string condition, Action<IMessage> @delegate)
+        {
+            Actor.Receive<T>(condition, @delegate);
+        }
+
+        public virtual void Receive<T>(string condition, Action<T, IMessage> @delegate)
+        {
+            Actor.Receive(condition, @delegate);
         }
 
 

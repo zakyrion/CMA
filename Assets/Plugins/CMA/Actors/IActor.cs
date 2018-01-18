@@ -29,6 +29,7 @@ namespace CMA
         void OnAdd(ICluster cluster, string adress);
         void Quit();
 
+        void Send(string condition, object data);
         void Send(object data, string adress, string cluster = "");
         void Send(object data, Action action, string adress, string cluster = "");
 

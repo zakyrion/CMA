@@ -15,26 +15,33 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
 using CMA.Core;
 using CMA.Messages;
 using UnityEngine;
+using ThreadPriority = System.Threading.ThreadPriority;
 
 namespace CMA
 {
     public class Cluster : ICluster
     {
-        protected ConcurrentDictionary<string, IActor> Actors = new ConcurrentDictionary<string, IActor>();
-        protected ConcurrentDictionary<string, List<IActor>> Children = new ConcurrentDictionary<string, List<IActor>>();
-        protected ConcurrentDictionary<string, ConcurrentQueue<IMessage>> MailsWaiting = new ConcurrentDictionary<string, ConcurrentQueue<IMessage>>();
+        protected Dictionary<string, IActor> Actors = new Dictionary<string, IActor>();
+
+        protected Dictionary<string, List<IActor>> Children =
+            new Dictionary<string, List<IActor>>();
+
+        protected Dictionary<string, List<IActor>> GlobalCalls =
+            new Dictionary<string, List<IActor>>();
+
+        protected Dictionary<string, ConcurrentQueue<IMessage>> MailsWaiting =
+            new Dictionary<string, ConcurrentQueue<IMessage>>();
+
         protected MessageManager MessageManager;
         protected IThreadController ThreadController;
-        ReaderWriterLock _lock = new ReaderWriterLock();
 
         public Cluster(string name)
         {
             Name = name;
-            ThreadController = new SingleThreadController();
+            ThreadController = new SingleThreadController(ThreadPriority.AboveNormal);
             MessageManager = new MessageManager();
         }
 
@@ -76,8 +83,37 @@ namespace CMA
 
         public void Send(IMessage message)
         {
-            //ThreadController.Invoke(SendHandler, message);
-            SendHandler(message);
+            ThreadController.Invoke(SendHandler, message);
+            //SendHandler(message);
+        }
+
+        public void Send(string condition, object data)
+        {
+            var message = new Message(data);
+
+            message.Init("", "");
+            message.SetCluster(Name);
+            message.AddCondition(condition);
+            Send(message);
+        }
+
+        public virtual void Send(object data, string adress, string cluster = null)
+        {
+            var message = new Message(data);
+
+            message.Init(adress, "");
+            message.SetCluster(cluster);
+            Send(message);
+        }
+
+        public void AddGlobalCall(string condition, IActor actor)
+        {
+            ThreadController.Invoke(AddGlobalCallHandler, new Container<string, IActor>(condition, actor));
+        }
+
+        public void RemoveGlobalCall(string condition, IActor actor)
+        {
+            ThreadController.Invoke(RemoveGlobalCallHandler, new Container<string, IActor>(condition, actor));
         }
 
         public void AskDeliveryHelper(Action<IDeliveryHelper> callback, string adress, string cluster,
@@ -97,21 +133,31 @@ namespace CMA
             Send(message);
         }
 
+        protected void RemoveGlobalCallHandler(Container<string, IActor> data)
+        {
+            List<IActor> list;
+            if (GlobalCalls.TryGetValue(data.ParamOne, out list))
+                list.Remove(data.ParamTwo);
+        }
+
+        protected void AddGlobalCallHandler(Container<string, IActor> data)
+        {
+            if (!GlobalCalls.ContainsKey(data.ParamOne))
+                GlobalCalls[data.ParamOne] = new List<IActor>();
+            GlobalCalls[data.ParamOne].Add(data.ParamTwo);
+        }
+
         protected void ReplaceActorHandler(Container<string, string> container)
         {
             if (Actors.ContainsKey(container.ParamOne))
             {
                 var actor = Actors[container.ParamOne];
-                Actors.TryRemove(container.ParamOne, out actor);
+                Actors.Remove(container.ParamOne);
                 actor.Quit();
-
-                _lock.AcquireWriterLock(100);
 
                 var parent = GetParentAdress(container.ParamOne);
                 if (parent != null)
                     Children[parent].Remove(actor);
-
-                _lock.ReleaseWriterLock();
 
                 AddActorHandler(new Container<IActor, string>(actor, container.ParamTwo));
             }
@@ -119,32 +165,32 @@ namespace CMA
 
         public void QuitHandler()
         {
-            System.RemoveCluster(this);
+            System?.RemoveCluster(this);
             foreach (var kvp in Actors)
                 kvp.Value.Quit();
 
             Actors.Clear();
 
-            _lock.AcquireWriterLock(100);
+            //_childrenLock.AcquireWriterLock(100);
             Children.Clear();
-            _lock.ReleaseWriterLock();
+            //_childrenLock.ReleaseWriterLock();
         }
 
         protected void AskDeliveryHelperHandler(ReceiversAsk ask)
         {
-            if (ask.Cluster == null || ask.Cluster == Name)
+            if (string.IsNullOrEmpty(ask.Cluster) || ask.Cluster == Name)
             {
                 var receivers = new List<IReceiver>();
 
                 if (ask.DeliveryType != EDeliveryType.ToChildern && Actors.ContainsKey(ask.Adress))
                     receivers.Add(Actors[ask.Adress]);
 
-                _lock.AcquireReaderLock(100);
+                //_childrenLock.AcquireReaderLock(100);
 
                 if (ask.DeliveryType != EDeliveryType.ToClient && Children.ContainsKey(ask.Adress))
                     receivers.AddRange(Children[ask.Adress]);
 
-                _lock.ReleaseReaderLock();
+                //_childrenLock.ReleaseReaderLock();
 
                 ask.Callback(new DeliveryHelper(receivers));
             }
@@ -156,11 +202,23 @@ namespace CMA
 
         protected virtual void SendHandler(IMessage message)
         {
-            if (message.Cluster == null || message.Cluster == Name)
-            {
+            if (string.IsNullOrEmpty(message.Cluster) || message.Cluster == Name)
                 if (string.IsNullOrEmpty(message.Adress))
                 {
-                    ThreadController.Invoke(MessageManager.Responce, message);
+                    var conditions = message.Conditions;
+
+                    if (conditions != null)
+                    {
+                        List<IActor> actors;
+                        foreach (var condition in conditions)
+                            if (GlobalCalls.TryGetValue(condition, out actors))
+                                foreach (var actor in actors)
+                                    actor.PushMessage(message);
+                    }
+                    else
+                    {
+                        ThreadController.Invoke(MessageManager.Responce, message);
+                    }
                 }
                 else
                 {
@@ -170,38 +228,31 @@ namespace CMA
                         {
                             IActor actor = null;
                             if (Actors.TryGetValue(message.Adress, out actor))
+                            {
                                 actor.PushMessage(message);
+                            }
                             else
                             {
-                                _lock.AcquireWriterLock(100);
-
                                 if (!MailsWaiting.ContainsKey(message.Adress))
-                                    MailsWaiting.TryAdd(message.Adress, new ConcurrentQueue<IMessage>());
+                                    MailsWaiting.Add(message.Adress, new ConcurrentQueue<IMessage>());
 
                                 MailsWaiting[message.Adress].Enqueue(message);
-                                _lock.ReleaseWriterLock();
                             }
                         }
-                        else if(!Actors.ContainsKey(message.Adress))
+                        else if (!Actors.ContainsKey(message.Adress))
                         {
-                            _lock.AcquireWriterLock(100);
-
                             if (!MailsWaiting.ContainsKey(message.Adress))
-                                MailsWaiting.TryAdd(message.Adress, new ConcurrentQueue<IMessage>());
+                                MailsWaiting.Add(message.Adress, new ConcurrentQueue<IMessage>());
 
                             MailsWaiting[message.Adress].Enqueue(message);
-                            _lock.ReleaseWriterLock();
                         }
 
                         if (message.DeliveryType != EDeliveryType.ToClient)
                         {
-                            _lock.AcquireReaderLock(1000);
-
-                            var children = Children[message.Adress];
-                            for (var i = 0; i < children.Count; i++)
-                                children[i].PushMessage(message);
-
-                            _lock.ReleaseReaderLock();
+                            List<IActor> children;
+                            if (Children.TryGetValue(message.Adress, out children))
+                                for (var i = 0; i < children.Count; i++)
+                                    children[i].PushMessage(message);
                         }
                     }
                     /*else
@@ -212,15 +263,12 @@ namespace CMA
                         MailsWaiting[message.Adress].Enqueue(message);
                     }*/
                 }
-            }
             else
-            {
                 ThreadController.Invoke(() =>
                 {
                     message.SetBackCluster(Name);
                     System.PushMessage(message);
                 });
-            }
         }
 
         protected void RemoveActorHandler(string adress)
@@ -228,17 +276,13 @@ namespace CMA
             if (Actors.ContainsKey(adress))
             {
                 var actor = Actors[adress];
-                Actors.TryRemove(adress, out actor);
+                Actors.Remove(adress);
                 actor.Quit();
 
                 var parent = GetParentAdress(adress);
 
-                _lock.AcquireWriterLock(100);
-
                 if (parent != null)
                     Children[parent].Remove(actor);
-
-                _lock.ReleaseWriterLock();
             }
         }
 
@@ -252,18 +296,14 @@ namespace CMA
 
         protected void AddActorHandler(Container<IActor, string> container)
         {
-            Actors.TryAdd(container.ParamTwo, container.ParamOne);
+            Actors.Add(container.ParamTwo, container.ParamOne);
 
             var parent = GetParentAdress(container.ParamTwo);
             if (parent != null)
             {
-                _lock.AcquireWriterLock(100);
-
                 if (!Children.ContainsKey(parent))
                     Children[parent] = new List<IActor>();
                 Children[parent].Add(container.ParamOne);
-
-                _lock.ReleaseWriterLock();
             }
 
             if (MailsWaiting.ContainsKey(container.ParamTwo))

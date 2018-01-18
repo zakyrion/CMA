@@ -13,15 +13,18 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 
 namespace CMA.Messages
 {
     public interface IMessage : ICommunication
     {
         IRespounceCode RespounceCode { get; }
-        T GetData<T>();
         string Key { get; }
         Type KeyType { get; }
+        List<string> Conditions { get; }
+        T GetData<T>();
         void ShowTrace();
+        void AddCondition(string condition);
     }
 }
